@@ -1,0 +1,19 @@
+{
+  "name": "elm-expense-manager",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "watch-elm"  : "chokidar './src/**/*.elm' -c 'elm-make ./src/Main.elm --output ./public/elm.js' --initial",
+    "watch" : "yarn run watch-elm ",
+    "build-elm": "elm-make ./src/Main.elm --output ./src/elm.js && uglifyjs ./src/elm.js --screw-ie8 -c -m -o ./public/elm.js",
+    "build": "yarn run build-elm"
+  },
+  "devDependencies": {
+    "chokidar-cli": "^1.2.0",
+    "uglify-js" : "2.7.5",
+    "watchify" : "3.7.0",
+    "watch-run" : "1.2.4",
+    "elm": "0.18.0"
+  }
+}
