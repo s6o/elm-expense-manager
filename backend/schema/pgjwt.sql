@@ -5,7 +5,7 @@
 -- This is a slightly modified version, to avoid the installation step in the
 -- original, just to make it easier to setup with the application.
 --
-CREATE EXTENSION pgcrypto;
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 CREATE OR REPLACE FUNCTION url_encode(data bytea) RETURNS text LANGUAGE sql AS $$
     SELECT translate(encode(data, 'base64'), E'+/=\n', '-_');

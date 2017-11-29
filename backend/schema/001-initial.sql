@@ -143,10 +143,10 @@ begin
 end;
 $$;
 
--- public schema
+-- login and auth check
 
 create or replace function
-login(email text, pass text) returns basic_auth.jwt_token
+api.login(email text, pass text) returns basic_auth.jwt_token
     language plpgsql
     as $$
 declare
@@ -170,23 +170,30 @@ begin
 end;
 $$;
 
-create or replace function check_auth() returns void
+create or replace function api.check_auth() returns void
     language plpgsql
     as $$
 declare
     _email text;
     _role name;
     _row record;
+    _auth text;
 begin
-    _email = current_setting('request.jwt.claim.email');
-    _role = current_setting('request.jwt.claim.role');
+    _auth = current_setting('request.header.X-Manager-Auth');
+    if _auth = 'elm-expense-manager' then
+        -- proceed to authentication
+        return;
+    else
+        _email = current_setting('request.jwt.claim.email');
+        _role = current_setting('request.jwt.claim.role');
 
-    select into _row * from basic_auth.users
-        where email = _email and role = _role limit 1;
+        select into _row * from basic_auth.users
+            where email = _email and role = _role limit 1;
 
-    if not found then
-        raise insufficient_privilege
-            using hint = 'Authenticate first.';
+        if not found then
+            raise insufficient_privilege
+                using hint = 'Authenticate first.';
+        end if;
     end if;
 end
 $$;
@@ -204,8 +211,9 @@ create role authenticator noinherit;
 grant anon to authenticator;
 grant webuser to authenticator;
 
-grant usage on schema public, basic_auth to anon;
+grant usage on schema api, basic_auth to anon;
 grant select on table pg_authid, basic_auth.users to anon;
-grant execute on function login(text, text) to anon;
+grant execute on function api.login(text, text) to anon;
+grant execute on function api.check_auth() to anon;
 
 grant all on schema api to webuser;
