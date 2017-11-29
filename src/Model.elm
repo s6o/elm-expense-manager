@@ -3,8 +3,15 @@ module Model
         ( Model
         )
 
+import Manager.Auth exposing (AuthManager)
+import Time exposing (Time)
+
 
 type alias Model =
-    { apiBaseUrl : String
+    { actions : Int
+    , apiBaseUrl : String
     , loading : Int
+    , systemTick : Time
+    , token : Maybe String
+    , authMgr : Maybe AuthManager
     }
