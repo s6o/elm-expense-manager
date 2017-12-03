@@ -1,16 +1,19 @@
 module Update
     exposing
-        ( init
+        ( delta2url
+        , init
         , subscriptions
         , update
+        , url2messages
         )
 
-import Api
-import Api.Auth
+import Material
 import Meld exposing (Error(..))
 import Messages exposing (Msg(..))
 import Model exposing (Model)
-import Time
+import Navigation exposing (Location)
+import Route
+import RouteUrl exposing (UrlChange)
 import Ui
 
 
@@ -19,12 +22,23 @@ init =
     ( { actions = 0
       , apiBaseUrl = "/api"
       , loading = 0
-      , systemTick = 0
+      , mdl = Material.model
+      , route = Route.Login
       , token = Nothing
       , authMgr = Nothing
       }
     , Cmd.none
     )
+
+
+delta2url : Model -> Model -> Maybe UrlChange
+delta2url previous current =
+    Debug.log "delta2url" Nothing
+
+
+url2messages : Location -> List Msg
+url2messages location =
+    []
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -55,6 +69,9 @@ update msg model =
                     , Cmd.none
                     )
 
+        Mdl mm ->
+            Material.update Mdl mm model
+
         Requests taskCount result ->
             case result of
                 Ok meld ->
@@ -77,27 +94,7 @@ update msg model =
         TextInput updateFn m v ->
             updateFn m v
 
-        Login ->
-            model.authMgr
-                |> Maybe.map
-                    (\mgr ->
-                        if String.length mgr.email > 0 && String.length mgr.pass > 0 then
-                            Api.call model [ Api.Auth.login ]
-                        else
-                            ( model
-                            , Cmd.none
-                            )
-                    )
-                |> Maybe.withDefault ( model, Cmd.none )
-
-        SystemTick t ->
-            ( { model | systemTick = t }
-            , Cmd.none
-            )
-
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.batch
-        [ Time.every (256 * Time.millisecond) SystemTick
-        ]
+    Sub.none

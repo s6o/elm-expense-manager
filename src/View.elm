@@ -8,12 +8,18 @@ import Html exposing (Html, div, input, text)
 import Html.Attributes exposing (type_, value)
 import Html.Events exposing (onClick, onInput)
 import Manager.Auth
+import Material.Layout as Layout
 import Messages exposing (Msg(..))
 import Model exposing (Model)
 
 
 view : Model -> Html Msg
 view model =
+    div [] []
+
+
+viewLogin : Model -> Html Msg
+viewLogin model =
     div []
         [ text "Expense Manager"
         , div
