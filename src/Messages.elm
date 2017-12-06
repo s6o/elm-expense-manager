@@ -15,4 +15,5 @@ type Msg
     | Actions Int (Result Error (Meld Model Error Msg))
     | Mdl (Material.Msg Msg)
     | Requests Int (Result Error (Meld Model Error Msg))
+    | SelectTab Int
     | TextInput (Model -> String -> ( Model, Cmd Msg )) Model String

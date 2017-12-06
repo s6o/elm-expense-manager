@@ -4,18 +4,65 @@ module View
         )
 
 import Api.Auth
+import Dict
 import Html exposing (Html, div, input, text)
 import Html.Attributes exposing (type_, value)
 import Html.Events exposing (onClick, onInput)
 import Manager.Auth
+import Material.Color as Color
 import Material.Layout as Layout
+import Material.Options as Options
 import Messages exposing (Msg(..))
 import Model exposing (Model)
 
 
 view : Model -> Html Msg
 view model =
-    div [] []
+    Layout.render Mdl
+        model.mdl
+        [ Layout.fixedHeader
+        , Layout.selectedTab model.tabIndex
+        , Layout.onSelectTab SelectTab
+        ]
+        { header = layoutHeader
+        , drawer = layoutDrawer
+        , tabs =
+            ( model.tabs
+                |> Dict.values
+                |> List.map text
+            , [ Color.background Color.primary
+              , Color.text Color.black
+              ]
+            )
+        , main = []
+        }
+
+
+layoutHeader : List (Html Msg)
+layoutHeader =
+    [ Layout.row
+        []
+        [ Layout.title [] [ text "Expense Manager" ]
+        , Layout.spacer
+        ]
+    ]
+
+
+layoutDrawer : List (Html Msg)
+layoutDrawer =
+    [ Layout.title [] [ text "Expense Manager" ]
+    , Layout.navigation
+        []
+        [ Layout.link
+            [ Layout.href "https://github.com/s6o/elm-expense-manager" ]
+            [ text "github" ]
+        , Layout.link
+            [ Layout.href "#settings"
+            , Options.onClick (Layout.toggleDrawer Mdl)
+            ]
+            [ text "Settings" ]
+        ]
+    ]
 
 
 viewLogin : Model -> Html Msg

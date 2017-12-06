@@ -7,7 +7,9 @@ module Update
         , url2messages
         )
 
+import Dict
 import Material
+import Material.Layout as Layout
 import Meld exposing (Error(..))
 import Messages exposing (Msg(..))
 import Model exposing (Model)
@@ -24,10 +26,19 @@ init =
       , loading = 0
       , mdl = Material.model
       , route = Route.Login
+      , tabIndex = 2
+      , tabs =
+            [ "Accounts"
+            , "Categories"
+            , "Transactions"
+            , "Statistics"
+            ]
+                |> List.indexedMap (,)
+                |> Dict.fromList
       , token = Nothing
       , authMgr = Nothing
       }
-    , Cmd.none
+    , Layout.sub0 Mdl
     )
 
 
@@ -91,10 +102,17 @@ update msg model =
                     , Cmd.none
                     )
 
+        SelectTab ti ->
+            ( { model | tabIndex = ti }
+            , Cmd.none
+            )
+
         TextInput updateFn m v ->
             updateFn m v
 
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.none
+    Sub.batch
+        [ Layout.subs Mdl model.mdl
+        ]
