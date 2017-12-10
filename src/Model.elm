@@ -6,17 +6,17 @@ module Model
 import Dict exposing (Dict)
 import Manager.Auth exposing (AuthManager)
 import Material
-import Route exposing (Route)
+import Route exposing (Route, Tab)
 
 
 type alias Model =
     { actions : Int
     , apiBaseUrl : String
+    , errors : Maybe String
     , loading : Int
     , mdl : Material.Model
     , route : Route
-    , tabIndex : Int
-    , tabs : Dict Int String
+    , tabs : Dict String Tab
     , token : Maybe String
     , authMgr : Maybe AuthManager
     }

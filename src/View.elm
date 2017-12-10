@@ -3,17 +3,17 @@ module View
         ( view
         )
 
-import Api.Auth
-import Dict
+import Dict exposing (Dict)
 import Html exposing (Html, div, input, text)
-import Html.Attributes exposing (type_, value)
-import Html.Events exposing (onClick, onInput)
-import Manager.Auth
+import Html.Attributes exposing (style, type_, value)
 import Material.Color as Color
 import Material.Layout as Layout
 import Material.Options as Options
 import Messages exposing (Msg(..))
 import Model exposing (Model)
+import Route exposing (Route(..), Tab)
+import View.Login as Login
+import View.Logout as Logout
 
 
 view : Model -> Html Msg
@@ -21,20 +21,18 @@ view model =
     Layout.render Mdl
         model.mdl
         [ Layout.fixedHeader
-        , Layout.selectedTab model.tabIndex
-        , Layout.onSelectTab SelectTab
+        , Layout.fixedTabs
+        , Layout.selectedTab 0
         ]
         { header = layoutHeader
-        , drawer = layoutDrawer
+        , drawer = layoutDrawer model.token model.tabs
         , tabs =
-            ( model.tabs
-                |> Dict.values
-                |> List.map text
+            ( layoutTab model.route model.tabs
             , [ Color.background Color.primary
               , Color.text Color.black
               ]
             )
-        , main = []
+        , main = routeLayout model
         }
 
 
@@ -48,68 +46,64 @@ layoutHeader =
     ]
 
 
-layoutDrawer : List (Html Msg)
-layoutDrawer =
+layoutDrawer : Maybe String -> Dict String Tab -> List (Html Msg)
+layoutDrawer token tabs =
     [ Layout.title [] [ text "Expense Manager" ]
     , Layout.navigation
         []
-        [ Layout.link
-            [ Layout.href "https://github.com/s6o/elm-expense-manager" ]
-            [ text "github" ]
-        , Layout.link
-            [ Layout.href "#settings"
-            , Options.onClick (Layout.toggleDrawer Mdl)
-            ]
-            [ text "Settings" ]
-        ]
+        (Route.tabs token tabs
+            |> List.map
+                (\t ->
+                    Layout.link
+                        [ Layout.href <| Route.toFragment t.route
+                        , Options.onClick (Layout.toggleDrawer Mdl)
+                        ]
+                        [ text t.label ]
+                )
+        )
     ]
 
 
-viewLogin : Model -> Html Msg
-viewLogin model =
-    div []
-        [ text "Expense Manager"
-        , div
-            []
-            [ text "Username"
-            ]
-        , div
-            []
-            [ input
-                [ TextInput Manager.Auth.emailInput model
-                    |> onInput
-                , type_ "text"
-                , model.authMgr
-                    |> Maybe.map .email
-                    |> Maybe.withDefault ""
-                    |> value
-                ]
-                []
-            ]
-        , div
-            []
-            [ text "Password"
-            ]
-        , div
-            []
-            [ input
-                [ TextInput Manager.Auth.passInput model
-                    |> onInput
-                , type_ "password"
-                , model.authMgr
-                    |> Maybe.map .pass
-                    |> Maybe.withDefault ""
-                    |> value
-                ]
-                []
-            ]
-        , div
-            []
-            [ input
-                [ onClick <| Act Api.Auth.login
-                , type_ "button"
-                , value "Login"
-                ]
-                []
+layoutTab : Route -> Dict String Tab -> List (Html Msg)
+layoutTab route tabs =
+    tabs
+        |> Dict.get (Route.toFragment route)
+        |> Maybe.map (\t -> [ text t.label ])
+        |> Maybe.withDefault []
+
+
+routeLayout : Model -> List (Html Msg)
+routeLayout model =
+    [ div
+        [ style
+            [ ( "padding", "10px" )
             ]
         ]
+        (case model.route of
+            Empty ->
+                []
+
+            Login ->
+                [ Login.view model
+                ]
+
+            Logout ->
+                [ Logout.view model
+                ]
+
+            Accounts ->
+                []
+
+            Categories ->
+                []
+
+            Transactions ->
+                []
+
+            Statistics ->
+                []
+
+            Settings ->
+                []
+        )
+    ]

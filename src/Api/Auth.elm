@@ -1,6 +1,7 @@
 module Api.Auth
     exposing
         ( login
+        , logout
         )
 
 import Http
@@ -9,6 +10,7 @@ import Manager.Auth exposing (Token)
 import Meld exposing (Error, Meld)
 import Messages exposing (Msg)
 import Model exposing (Model)
+import Route exposing (Route(..))
 import Task exposing (Task)
 
 
@@ -20,7 +22,28 @@ login meld =
             (\result ->
                 let
                     taskModel ma =
-                        { ma | token = Just result.token }
+                        { ma
+                            | route = Route.Transactions
+                            , token = Just result.token
+                            , authMgr = Nothing
+                        }
+                in
+                Meld.withMerge taskModel meld
+            )
+
+
+logout : Meld Model Error Msg -> Task Error (Meld Model Error Msg)
+logout meld =
+    Task.succeed meld
+        |> Task.map
+            (\_ ->
+                let
+                    taskModel ma =
+                        { ma
+                            | route = Route.Login
+                            , token = Nothing
+                            , authMgr = Nothing
+                        }
                 in
                 Meld.withMerge taskModel meld
             )
