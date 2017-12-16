@@ -170,34 +170,6 @@ begin
 end;
 $$;
 
-create or replace function api.check_auth() returns void
-    language plpgsql
-    as $$
-declare
-    _email text;
-    _role name;
-    _row record;
-    _auth text;
-begin
-    _auth = current_setting('request.header.X-Manager-Auth');
-    if _auth = 'elm-expense-manager' then
-        -- proceed to authentication
-        return;
-    else
-        _email = current_setting('request.jwt.claim.email');
-        _role = current_setting('request.jwt.claim.role');
-
-        select into _row * from basic_auth.users
-            where email = _email and role = _role limit 1;
-
-        if not found then
-            raise insufficient_privilege
-                using hint = 'Authenticate first.';
-        end if;
-    end if;
-end
-$$;
-
 -- permissions
 
 drop role if exists authenticator;
@@ -208,12 +180,21 @@ create role anon;
 create role webuser nologin;
 create role authenticator noinherit;
 
-grant anon to authenticator;
 grant webuser to authenticator;
 
 grant usage on schema api, basic_auth to anon;
 grant select on table pg_authid, basic_auth.users to anon;
 grant execute on function api.login(text, text) to anon;
-grant execute on function api.check_auth() to anon;
 
 grant all on schema api to webuser;
+grant all on api.account_transactions     to webuser;
+grant all on api.accounts                 to webuser;
+grant all on api.categories               to webuser;
+grant all on api.languages                to webuser;
+grant all on api.management_group_members to webuser;
+grant all on api.management_groups        to webuser;
+grant all on api.managers                 to webuser;
+grant all on api.payment_types            to webuser;
+grant all on api.transactions             to webuser;
+grant all on api.translations             to webuser;
+
