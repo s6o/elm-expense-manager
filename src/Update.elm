@@ -7,6 +7,7 @@ module Update
         , url2messages
         )
 
+import Api.Error
 import Material
 import Material.Layout as Layout
 import Meld exposing (Error(..))
@@ -74,7 +75,7 @@ update msg model =
         Request tasks ->
             Meld.init model
                 |> Meld.addTasks tasks
-                |> Meld.send Results (\_ -> model.loading) (\tc -> { model | loading = model.loading + tc })
+                |> Meld.send Responses (\_ -> model.loading) (\tc -> { model | loading = model.loading + tc })
 
         Responses taskCount result ->
             case result of
@@ -91,7 +92,12 @@ update msg model =
                         _ =
                             Debug.log "Request Error" meldError
                     in
-                    ( { model | errors = Just <| Meld.errorMessage meldError }
+                    ( { model
+                        | errors =
+                            Api.Error.errorMessage meldError
+                                |> Maybe.withDefault (Meld.errorMessage meldError)
+                                |> Just
+                      }
                     , Cmd.none
                     )
 
@@ -126,7 +132,7 @@ update msg model =
                     )
 
         TextInput updateFn m v ->
-            updateFn m v
+            updateFn { m | errors = Nothing } v
 
 
 subscriptions : Model -> Sub Msg

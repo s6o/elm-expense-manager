@@ -21,6 +21,14 @@ view model =
         , css "padding" "5px"
         ]
         [ Options.div
+            [ css "min-height" "30px"
+            , css "color" "red"
+            ]
+            [ model.errors
+                |> Maybe.withDefault ""
+                |> text
+            ]
+        , Options.div
             []
             [ Textfield.render Mdl
                 [ 0 ]
@@ -59,6 +67,7 @@ view model =
             ]
         , Options.div
             [ css "text-align" "right"
+            , css "padding-bottom" "10px"
             ]
             [ Button.render Mdl
                 [ 2 ]
