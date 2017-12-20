@@ -4,7 +4,7 @@ An expense manager in Elm.
 
 ## Requirements
   * backend - PostgreSQL 9.x
-  * backend - PostgREST 4.3.x https://github.com/begriffs/postgrest
+  * backend - PostgREST 0.4.3.x https://github.com/begriffs/postgrest
   * frontend - nginx
   * elm-dev - yarn
 
