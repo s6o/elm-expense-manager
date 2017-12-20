@@ -14,11 +14,12 @@ import Dict exposing (Dict)
 type Route
     = Empty
     | Login
+    | Currencies
     | Accounts
     | Categories
     | Transactions
     | Statistics
-    | Settings
+    | Groups
     | Logout
 
 
@@ -42,12 +43,13 @@ defaultRoute token =
 initTabs : Dict String Tab
 initTabs =
     [ Tab 0 Login "Login"
-    , Tab 1 Accounts "Accounts"
-    , Tab 2 Categories "Categories"
-    , Tab 3 Transactions "Transactions"
-    , Tab 4 Statistics "Statistics"
-    , Tab 5 Settings "Settings"
-    , Tab 6 Logout "Logout"
+    , Tab 1 Currencies "Currencies"
+    , Tab 2 Accounts "Accounts"
+    , Tab 3 Categories "Categories"
+    , Tab 4 Transactions "Transactions"
+    , Tab 5 Statistics "Statistics"
+    , Tab 6 Groups "Groups"
+    , Tab 7 Logout "Logout"
     ]
         |> List.map (\t -> ( toFragment t.route, t ))
         |> Dict.fromList
@@ -76,6 +78,9 @@ toFragment route =
         Login ->
             "#login"
 
+        Currencies ->
+            "#currencies"
+
         Accounts ->
             "#accounts"
 
@@ -88,8 +93,8 @@ toFragment route =
         Statistics ->
             "#statistics"
 
-        Settings ->
-            "#settings"
+        Groups ->
+            "#groups"
 
         Logout ->
             "#logout"

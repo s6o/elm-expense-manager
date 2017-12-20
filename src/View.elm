@@ -91,6 +91,9 @@ routeLayout model =
                 [ Logout.view model
                 ]
 
+            Currencies ->
+                []
+
             Accounts ->
                 []
 
@@ -103,7 +106,7 @@ routeLayout model =
             Statistics ->
                 []
 
-            Settings ->
+            Groups ->
                 []
         )
     ]
