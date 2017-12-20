@@ -34,14 +34,24 @@ create table api.management_group_members (
 , primary key (group_id, member_id)
 );
 
+create table api.currencies (
+  ccid serial primary key
+, currency_name text not null
+, main_unit_name text not null
+, sub_unit_name text not null
+, sub_unit_ratio integer default 100
+, iso_code text check(length(iso_code) = 3)
+, symbol text check(length(symbol) >= 1 and length(symbol) <= 3)
+);
+
 create table api.accounts (
   aid serial primary key
 , mgr_id integer references api.managers(mid) on delete cascade on update cascade
+, currency_id integer references api.currencies(ccid) on delete set null on update cascade
 , name text not null
-, currency_label text check(length(currency_label) = 3)
-, currency_sign text check(length(currency_sign) = 1)
-, initial_balance numeric(10,2)
-, current_balance numeric(10,2)
+, initial_balance bigint
+, bank_account text
+, bank_name text
 );
 
 create table api.payment_types (
@@ -190,6 +200,7 @@ grant all on schema api to webuser;
 grant all on api.account_transactions     to webuser;
 grant all on api.accounts                 to webuser;
 grant all on api.categories               to webuser;
+grant all on api.currencies               to webuser;
 grant all on api.languages                to webuser;
 grant all on api.management_group_members to webuser;
 grant all on api.management_groups        to webuser;
