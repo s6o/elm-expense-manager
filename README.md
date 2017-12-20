@@ -2,6 +2,19 @@
 
 An expense manager in Elm.
 
+## Progress
+
+### Done
+  * Basic material interface with login/logout
+
+### TODO
+  * Currency management
+  * Account management
+  * Category managment
+  * Transactions
+  * Statistics
+  * Management groups (family accounts)
+
 ## Requirements
   * backend - PostgreSQL 9.x
   * backend - PostgREST 0.4.3.x https://github.com/begriffs/postgrest
