@@ -63,7 +63,7 @@ create table api.payment_types (
 create table api.categories (
   cid serial primary key
 , mgr_id integer references api.managers(mid) on delete cascade on update cascade
-, name text not null
+, name text not null check(lower(name) = name)
 , parent_path text not null default '/'
 );
 
