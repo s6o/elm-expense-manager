@@ -29,9 +29,9 @@ create table api.management_groups (
 );
 
 create table api.management_group_members (
-  mgp_id integer references api.management_groups(mgid) on delete cascade on update cascade
-, mgr_id integer references api.managers(mid) on delete cascade on update cascade
-, primary key (mgp_id, mgr_id)
+  group_id integer references api.management_groups(mgid) on delete cascade on update cascade
+, member_id integer references api.managers(mid) on delete cascade on update cascade
+, primary key (group_id, member_id)
 );
 
 create table api.accounts (
