@@ -69,6 +69,9 @@ update msg model =
                 |> Meld.addTasks tasks
                 |> Meld.sequence Results (\_ -> model.actions) (\ac -> { model | actions = model.actions + ac })
 
+        IgnoreKey ->
+            ( model, Cmd.none )
+
         Mdl mm ->
             Material.update Mdl mm model
 

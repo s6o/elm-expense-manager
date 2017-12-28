@@ -5,6 +5,7 @@ module View.Login
 
 import Api.Auth
 import Html exposing (Html, div, text)
+import KeyEvent
 import Manager.Auth
 import Material.Button as Button
 import Material.Elevation as Elevation
@@ -44,6 +45,7 @@ view model =
                     |> Textfield.value
                 , TextInput Manager.Auth.emailInput model
                     |> Options.onInput
+                , KeyEvent.onEnter <| Request [ Api.Auth.login ]
                 ]
                 []
             ]
@@ -62,6 +64,7 @@ view model =
                     |> Textfield.value
                 , TextInput Manager.Auth.passInput model
                     |> Options.onInput
+                , KeyEvent.onEnter <| Request [ Api.Auth.login ]
                 ]
                 []
             ]
