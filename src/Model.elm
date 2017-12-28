@@ -1,12 +1,18 @@
 module Model
     exposing
-        ( Model
+        ( Flags
+        , Model
         )
 
 import Dict exposing (Dict)
 import Manager.Auth exposing (AuthManager)
 import Material
 import Route exposing (Route, Tab)
+
+
+type alias Flags =
+    { token : Maybe String
+    }
 
 
 type alias Model =

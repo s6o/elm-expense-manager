@@ -29,8 +29,16 @@
     </head>
     <body>
         <script src="elm.js"></script>
+        <script type="text/javascript">
+        var flags = {
+            token: localStorage.getItem('elm-expense-manager-token')
+        };
+        </script>
         <script>
-            var app = Elm.Main.fullscreen();
+            var app = Elm.Main.fullscreen(flags);
+            app.ports.txToken.subscribe(function(t) {
+                localStorage.setItem('elm-expense-manager-token', t)
+            });
         </script>
     </body>
 </html>

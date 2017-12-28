@@ -1,15 +1,15 @@
 module Main exposing (..)
 
 import Messages exposing (Msg)
-import Model exposing (Model)
+import Model exposing (Flags, Model)
 import RouteUrl exposing (RouteUrlProgram)
 import Update
 import View
 
 
-main : RouteUrlProgram Never Model Msg
+main : RouteUrlProgram Flags Model Msg
 main =
-    RouteUrl.program
+    RouteUrl.programWithFlags
         { delta2url = Update.delta2url
         , location2messages = Update.url2messages
         , init = Update.init

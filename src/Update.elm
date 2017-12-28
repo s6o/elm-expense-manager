@@ -12,14 +12,14 @@ import Material
 import Material.Layout as Layout
 import Meld exposing (Error(..))
 import Messages exposing (Msg(..))
-import Model exposing (Model)
+import Model exposing (Flags, Model)
 import Navigation exposing (Location)
 import Route exposing (Tab, initTabs)
 import RouteUrl exposing (UrlChange)
 
 
-init : ( Model, Cmd Msg )
-init =
+init : Flags -> ( Model, Cmd Msg )
+init flags =
     ( { actions = 0
       , apiBaseUrl = "/api"
       , errors = Nothing
@@ -27,7 +27,7 @@ init =
       , mdl = Material.model
       , route = Route.Empty
       , tabs = initTabs
-      , token = Nothing
+      , token = flags.token
       , authMgr = Nothing
       }
     , Layout.sub0 Mdl

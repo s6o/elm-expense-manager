@@ -10,6 +10,7 @@ import Manager.Auth exposing (Token)
 import Meld exposing (Error, Meld)
 import Messages exposing (Msg)
 import Model exposing (Model)
+import Ports
 import Route exposing (Route(..))
 import Task exposing (Task)
 
@@ -27,8 +28,14 @@ login meld =
                             , token = Just result.token
                             , authMgr = Nothing
                         }
+
+                    storeToken ma =
+                        ma.token
+                            |> Maybe.map Ports.txToken
+                            |> Maybe.withDefault Cmd.none
                 in
                 Meld.withMerge taskModel meld
+                    |> Meld.withCmds [ storeToken ]
             )
 
 
