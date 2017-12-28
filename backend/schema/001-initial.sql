@@ -12,8 +12,11 @@ create table api.translations (
 , ctx text not null
 , key text not null
 , txt text not null
-, unique (lang, ctx)
-, unique (lang, key)
+, unique (lang, ctx, key)
+);
+
+create table api.settings (
+  settings JSONB
 );
 
 create table api.managers (
@@ -34,20 +37,18 @@ create table api.management_group_members (
 , primary key (group_id, member_id)
 );
 
-create table api.currencies (
-  ccid serial primary key
-, currency_name text not null
-, main_unit_name text not null
-, sub_unit_name text not null
+create table api.curreny (
+  iso_code text check(length(iso_code) = 3)
 , sub_unit_ratio integer default 100
-, iso_code text check(length(iso_code) = 3)
 , symbol text check(length(symbol) >= 1 and length(symbol) <= 3)
+, decimal_separator text check(length(decimal_separator) = 1)
+, thousand_separator text check(length(thousand_separator) = 1)
+, primary key (iso_code)
 );
 
 create table api.accounts (
   aid serial primary key
 , mgr_id integer references api.managers(mid) on delete cascade on update cascade
-, currency_id integer references api.currencies(ccid) on delete set null on update cascade
 , name text not null
 , initial_balance bigint
 , bank_account text
@@ -76,7 +77,7 @@ create table api.account_transactions (
 , mgr_id integer references api.managers(mid) on delete cascade on update cascade
 , ts timestamp with time zone not null 
 , transaction text references api.transactions(name) on delete cascade on update cascade
-, amount numeric(10,2) default 0.00
+, amount bigint default 0
 , title text not null
 , comments text
 , pt_id integer references api.payment_types(pid) on delete cascade on update cascade
@@ -200,12 +201,12 @@ grant all on schema api to webuser;
 grant all on api.account_transactions     to webuser;
 grant all on api.accounts                 to webuser;
 grant all on api.categories               to webuser;
-grant all on api.currencies               to webuser;
+grant all on api.curreny                  to webuser;
 grant all on api.languages                to webuser;
 grant all on api.management_group_members to webuser;
 grant all on api.management_groups        to webuser;
 grant all on api.managers                 to webuser;
 grant all on api.payment_types            to webuser;
+grant all on api.settings                 to webuser;
 grant all on api.transactions             to webuser;
 grant all on api.translations             to webuser;
-
