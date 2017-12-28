@@ -39,6 +39,9 @@
             app.ports.txToken.subscribe(function(t) {
                 localStorage.setItem('elm-expense-manager-token', t)
             });
+            app.ports.txLogout.subscribe(function() {
+                localStorage.clear();
+            });
         </script>
     </body>
 </html>

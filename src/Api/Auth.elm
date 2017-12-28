@@ -51,8 +51,12 @@ logout meld =
                             , token = Nothing
                             , authMgr = Nothing
                         }
+
+                    clearStorage ma =
+                        Ports.txLogout True
                 in
                 Meld.withMerge taskModel meld
+                    |> Meld.withCmds [ clearStorage ]
             )
 
 

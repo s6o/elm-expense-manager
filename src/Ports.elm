@@ -1,7 +1,11 @@
 port module Ports
     exposing
-        ( txToken
+        ( txLogout
+        , txToken
         )
+
+
+port txLogout : Bool -> Cmd msg
 
 
 port txToken : String -> Cmd msg
