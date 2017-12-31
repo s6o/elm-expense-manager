@@ -9,7 +9,7 @@ SPA in production, a few _gripes_ have accumulated:
 
   * tagging of things, redundant things, hundreds of pattern matches
   * JSON decoding/encoding - in most cases copy/paste boilarplate, it really
-    should be a language feature e.g. Json.Decode.decoder -> {..} -> Decoder {..}
+    should be a language feature e.g. Json.Decode.decoder : {..} -> Decoder {..}
 
 There are two sub-project that Expense Manager uses to try address the above issues:
   * elm-meld - https://github.com/s6o/elm-meld
