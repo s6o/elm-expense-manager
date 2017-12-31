@@ -6,9 +6,9 @@ An expense manager in Elm.
 
 ### Done
   * Basic material interface with login/logout
+  * Currency management
 
 ### TODO
-  * Currency management
   * Account management
   * Category managment
   * Transactions
@@ -21,7 +21,16 @@ An expense manager in Elm.
   * frontend - nginx
   * elm-dev - yarn
 
-## Nginx Setup for Development
+## Development Setup
+Pre-requisites: PostgreSQL installed and running. PostgREST executable in path.
+```
+    cd elm_expense_manager/backend
+    ./setup-db.sh
+    ./run-sql.sh -local elm_expense_manager ./schema/demo-data.sql
+    postgrest ./postgrest.conf
+```
+
+### Nginx Setup
   * frontend - http://localhost:3330
   * backend - http://localhost:3333
 
