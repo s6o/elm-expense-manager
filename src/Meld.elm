@@ -265,7 +265,7 @@ errorMessage error =
                     toString status.code ++ " | " ++ status.message ++ " | " ++ dbg
 
 
-{-| Helper to access Http.Error is ther is one
+{-| Helper to access Http.Error is there is one.
 -}
 httpError : Error -> Maybe Http.Error
 httpError error =
