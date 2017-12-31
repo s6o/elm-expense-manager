@@ -4,9 +4,10 @@ module View.Login
         )
 
 import Api.Auth
+import DRec
 import Html exposing (Html, div, text)
 import KeyEvent
-import Manager.Auth
+import Manager.Auth as MAuth
 import Material.Button as Button
 import Material.Elevation as Elevation
 import Material.Options as Options exposing (css)
@@ -22,14 +23,6 @@ view model =
         , css "padding" "5px"
         ]
         [ Options.div
-            [ css "min-height" "30px"
-            , css "color" "red"
-            ]
-            [ model.errors
-                |> Maybe.withDefault ""
-                |> text
-            ]
-        , Options.div
             []
             [ Textfield.render Mdl
                 [ 0 ]
@@ -39,11 +32,11 @@ view model =
                 , Textfield.floatingLabel
                 , Textfield.email
                 , css "width" "100%"
-                , model.authMgr
-                    |> Maybe.map .email
-                    |> Maybe.withDefault ""
+                , DRec.get "email" model.authMgr
+                    |> DRec.toString
+                    |> Result.withDefault ""
                     |> Textfield.value
-                , TextInput Manager.Auth.emailInput model
+                , TextInput (MAuth.fieldInput "email") model
                     |> Options.onInput
                 , KeyEvent.onEnter <| Request [ Api.Auth.login ]
                 ]
@@ -58,11 +51,11 @@ view model =
                 , Textfield.floatingLabel
                 , Textfield.password
                 , css "width" "100%"
-                , model.authMgr
-                    |> Maybe.map .pass
-                    |> Maybe.withDefault ""
+                , DRec.get "pass" model.authMgr
+                    |> DRec.toString
+                    |> Result.withDefault ""
                     |> Textfield.value
-                , TextInput Manager.Auth.passInput model
+                , TextInput (MAuth.fieldInput "pass") model
                     |> Options.onInput
                 , KeyEvent.onEnter <| Request [ Api.Auth.login ]
                 ]

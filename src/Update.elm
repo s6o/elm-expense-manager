@@ -7,7 +7,11 @@ module Update
         , url2messages
         )
 
-import Api.Error
+import Api.Auth
+import Api.Init exposing (initialRequests)
+import Api.Response
+import Manager.Auth as MAuth
+import Manager.Currency as MCurrency
 import Material
 import Material.Layout as Layout
 import Meld exposing (Error(..))
@@ -20,17 +24,25 @@ import RouteUrl exposing (UrlChange)
 
 init : Flags -> ( Model, Cmd Msg )
 init flags =
-    ( { actions = 0
-      , apiBaseUrl = "/api"
-      , errors = Nothing
-      , loading = 0
-      , mdl = Material.model
-      , route = Route.Empty
-      , tabs = initTabs
-      , token = flags.token
-      , authMgr = Nothing
-      }
-    , Layout.sub0 Mdl
+    let
+        model =
+            { actions = 0
+            , apiBaseUrl = "/api"
+            , errors = Nothing
+            , loading = 0
+            , mdl = Material.model
+            , route = Route.Empty
+            , tabs = initTabs
+            , token = flags.token
+            , authMgr = MAuth.init
+            , currencyMgr = MCurrency.init
+            }
+    in
+    ( model
+    , Cmd.batch
+        [ Layout.sub0 Mdl
+        , initialRequests model
+        ]
     )
 
 
@@ -97,11 +109,18 @@ update msg model =
                     in
                     ( { model
                         | errors =
-                            Api.Error.errorMessage meldError
+                            Api.Response.errorMessage meldError
                                 |> Maybe.withDefault (Meld.errorMessage meldError)
                                 |> Just
                       }
-                    , Cmd.none
+                    , case Api.Response.isUnauthorized meldError of
+                        False ->
+                            Cmd.none
+
+                        True ->
+                            Meld.init model
+                                |> Meld.addTasks [ Api.Auth.logout ]
+                                |> Meld.cmds (Responses 0)
                     )
 
         Results actCount result ->
@@ -128,9 +147,9 @@ update msg model =
                 |> List.filter (\t -> fragment == Route.toFragment t.route)
                 |> List.head
                 |> Maybe.map
-                    (\t -> ( { model | route = t.route }, Cmd.none ))
+                    (\t -> ( { model | errors = Nothing, route = t.route }, Cmd.none ))
                 |> Maybe.withDefault
-                    ( { model | route = Route.defaultRoute model.token }
+                    ( { model | errors = Nothing, route = Route.defaultRoute model.token }
                     , Navigation.modifyUrl (Route.defaultRoute model.token |> Route.toFragment)
                     )
 

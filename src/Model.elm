@@ -4,8 +4,8 @@ module Model
         , Model
         )
 
+import DRec exposing (DError, DRec)
 import Dict exposing (Dict)
-import Manager.Auth exposing (AuthManager)
 import Material
 import Route exposing (Route, Tab)
 
@@ -24,5 +24,6 @@ type alias Model =
     , route : Route
     , tabs : Dict String Tab
     , token : Maybe String
-    , authMgr : Maybe AuthManager
+    , authMgr : Result DError DRec
+    , currencyMgr : Result DError DRec
     }

@@ -14,7 +14,7 @@ import Dict exposing (Dict)
 type Route
     = Empty
     | Login
-    | Currencies
+    | Currency
     | Accounts
     | Categories
     | Transactions
@@ -43,7 +43,7 @@ defaultRoute token =
 initTabs : Dict String Tab
 initTabs =
     [ Tab 0 Login "Login"
-    , Tab 1 Currencies "Currencies"
+    , Tab 1 Currency "Currency"
     , Tab 2 Accounts "Accounts"
     , Tab 3 Categories "Categories"
     , Tab 4 Transactions "Transactions"
@@ -78,8 +78,8 @@ toFragment route =
         Login ->
             "#login"
 
-        Currencies ->
-            "#currencies"
+        Currency ->
+            "#currency"
 
         Accounts ->
             "#accounts"

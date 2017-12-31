@@ -4,11 +4,14 @@ module Api.Auth
         , logout
         )
 
+import Api.Headers exposing (objectHeader)
+import Api.Init exposing (initialRequests)
+import DRec
 import Http
 import HttpBuilder exposing (..)
-import Manager.Auth exposing (Token)
+import Manager.Auth as MAuth exposing (Token)
 import Meld exposing (Error, Meld)
-import Messages exposing (Msg)
+import Messages exposing (Msg(..))
 import Model exposing (Model)
 import Ports
 import Route exposing (Route(..))
@@ -17,7 +20,7 @@ import Task exposing (Task)
 
 login : Meld Model Error Msg -> Task Error (Meld Model Error Msg)
 login meld =
-    Manager.Auth.validate meld
+    MAuth.validate meld
         |> Task.andThen postCredentials
         |> Task.map
             (\result ->
@@ -26,7 +29,7 @@ login meld =
                         { ma
                             | route = Route.Transactions
                             , token = Just result.token
-                            , authMgr = Nothing
+                            , authMgr = DRec.clear ma.authMgr
                         }
 
                     storeToken ma =
@@ -35,7 +38,7 @@ login meld =
                             |> Maybe.withDefault Cmd.none
                 in
                 Meld.withMerge taskModel meld
-                    |> Meld.withCmds [ storeToken ]
+                    |> Meld.withCmds [ storeToken, initialRequests ]
             )
 
 
@@ -49,7 +52,7 @@ logout meld =
                         { ma
                             | route = Route.Login
                             , token = Nothing
-                            , authMgr = Nothing
+                            , authMgr = DRec.clear ma.authMgr
                         }
 
                     clearStorage ma =
@@ -66,25 +69,20 @@ postCredentials meld =
         model =
             Meld.model meld
     in
-    case model.authMgr of
-        Nothing ->
-            "Model's `authManager` is not set."
-                |> Meld.EMsg
-                |> Task.fail
-
-        Just mgr ->
-            let
-                payload =
-                    Manager.Auth.encode mgr
-            in
-            model.apiBaseUrl
-                ++ "/rpc/login"
-                |> HttpBuilder.post
-                |> withHeaders
-                    [ ( "Accept", "application/vnd.pgrst.object+json" )
-                    , ( "X-Manager-Auth", "elm-expense-manager" )
-                    ]
-                |> withJsonBody payload
-                |> withExpect (Http.expectJson Manager.Auth.decoder)
-                |> HttpBuilder.toTask
-                |> Task.mapError Meld.EHttp
+    if DRec.isEmpty model.authMgr then
+        "Model's `authManager` is not set."
+            |> Meld.EMsg
+            |> Task.fail
+    else
+        let
+            payload =
+                DRec.toObject model.authMgr
+        in
+        model.apiBaseUrl
+            ++ "/rpc/login"
+            |> HttpBuilder.post
+            |> withHeaders objectHeader
+            |> withJsonBody payload
+            |> withExpect (Http.expectJson MAuth.decoder)
+            |> HttpBuilder.toTask
+            |> Task.mapError Meld.EHttp

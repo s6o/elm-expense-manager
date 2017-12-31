@@ -7,11 +7,13 @@ import Dict exposing (Dict)
 import Html exposing (Html, div, input, text)
 import Html.Attributes exposing (style, type_, value)
 import Material.Color as Color
+import Material.Elevation as Elevation
 import Material.Layout as Layout
-import Material.Options as Options
+import Material.Options as Options exposing (css)
 import Messages exposing (Msg(..))
 import Model exposing (Model)
 import Route exposing (Route(..), Tab)
+import View.Currency as C
 import View.Login as Login
 import View.Logout as Logout
 
@@ -79,34 +81,48 @@ routeLayout model =
             [ ( "padding", "10px" )
             ]
         ]
-        (case model.route of
-            Empty ->
-                []
+        ([ Options.div
+            [ Elevation.e4
+            , css "height" "30px"
+            , css "color" "red"
+            , css "padding-top" "8px"
+            , css "margin-bottom" "10px"
+            ]
+            [ model.errors
+                |> Maybe.withDefault ""
+                |> text
+            ]
+         ]
+            ++ (case model.route of
+                    Empty ->
+                        []
 
-            Login ->
-                [ Login.view model
-                ]
+                    Login ->
+                        [ Login.view model
+                        ]
 
-            Logout ->
-                [ Logout.view model
-                ]
+                    Logout ->
+                        [ Logout.view model
+                        ]
 
-            Currencies ->
-                []
+                    Currency ->
+                        [ C.view model
+                        ]
 
-            Accounts ->
-                []
+                    Accounts ->
+                        []
 
-            Categories ->
-                []
+                    Categories ->
+                        []
 
-            Transactions ->
-                []
+                    Transactions ->
+                        []
 
-            Statistics ->
-                []
+                    Statistics ->
+                        []
 
-            Groups ->
-                []
+                    Groups ->
+                        []
+               )
         )
     ]

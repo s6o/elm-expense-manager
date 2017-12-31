@@ -1,4 +1,4 @@
-module Api.Error
+module Api.Response
     exposing
         ( Error
         , errorMessage
