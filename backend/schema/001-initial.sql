@@ -37,7 +37,7 @@ create table api.management_group_members (
 , primary key (group_id, member_id)
 );
 
-create table api.curreny (
+create table api.currency (
   iso_code text check(length(iso_code) = 3)
 , sub_unit_ratio integer default 100
 , symbol text check(length(symbol) >= 1 and length(symbol) <= 3)
@@ -201,7 +201,7 @@ grant all on schema api to webuser;
 grant all on api.account_transactions     to webuser;
 grant all on api.accounts                 to webuser;
 grant all on api.categories               to webuser;
-grant all on api.curreny                  to webuser;
+grant all on api.currency                 to webuser;
 grant all on api.languages                to webuser;
 grant all on api.management_group_members to webuser;
 grant all on api.management_groups        to webuser;

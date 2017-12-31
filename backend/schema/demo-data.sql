@@ -31,7 +31,7 @@ insert into api.management_group_members (group_id, member_id) values
 , (1, 2);
 
 
-insert into api.curreny (iso_code, symbol, decimal_separator, thousand_separator)
+insert into api.currency (iso_code, symbol, decimal_separator, thousand_separator)
 values
   ('IUK', '~', '.', ',')
 ;
