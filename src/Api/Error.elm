@@ -2,6 +2,7 @@ module Api.Error
     exposing
         ( Error
         , errorMessage
+        , isUnauthorized
         )
 
 import Http
@@ -18,6 +19,15 @@ type alias Error =
     , code : String
     , message : String
     }
+
+
+decoder : Decoder Error
+decoder =
+    Json.Decode.succeed Error
+        |: (Json.Decode.maybe <| field "hint" Json.Decode.string)
+        |: (Json.Decode.maybe <| field "details" Json.Decode.string)
+        |: field "code" Json.Decode.string
+        |: field "message" Json.Decode.string
 
 
 errorMessage : Meld.Error -> Maybe String
@@ -37,10 +47,16 @@ errorMessage merr =
                     Nothing
 
 
-decoder : Decoder Error
-decoder =
-    Json.Decode.succeed Error
-        |: (Json.Decode.maybe <| field "hint" Json.Decode.string)
-        |: (Json.Decode.maybe <| field "details" Json.Decode.string)
-        |: field "code" Json.Decode.string
-        |: field "message" Json.Decode.string
+isUnauthorized : Meld.Error -> Bool
+isUnauthorized merr =
+    case Meld.httpError merr of
+        Nothing ->
+            False
+
+        Just error ->
+            case error of
+                Http.BadStatus { status } ->
+                    status.code == 401
+
+                _ ->
+                    False
