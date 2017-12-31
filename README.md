@@ -2,6 +2,19 @@
 
 An expense manager in Elm.
 
+## What to expect?
+The Expense Manager in Elm is an experiment, to try out a few things differently.
+After a year and change of almost daily Elm development and 20,000+ (single dev)
+SPA in production, a few _gripes_ have accumulated:
+
+  * tagging of things, redundant things, hundreds of pattern matches
+  * JSON decoding/encoding - in most cases copy/paste boilarplate, it really
+    should be a language feature e.g. Json.Decode.decoder -> {..} -> Decoder {..}
+
+There are two sub-project that Expense Manager uses to try address the above issues:
+  * elm-meld - https://github.com/s6o/elm-meld
+  * elm-drec - https://github.com/s6o/elm-drec
+
 ## Progress
 
 ### Done
