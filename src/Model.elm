@@ -25,5 +25,7 @@ type alias Model =
     , tabs : Dict String Tab
     , token : Maybe String
     , authMgr : Result DError DRec
+    , claimsMgr : Result DError DRec
     , currencyMgr : Result DError DRec
+    , userMgr : Result DError DRec
     }

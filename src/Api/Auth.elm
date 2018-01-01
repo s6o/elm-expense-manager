@@ -10,6 +10,7 @@ import DRec
 import Http
 import HttpBuilder exposing (..)
 import Manager.Auth as MAuth exposing (Token)
+import Manager.Jwt as MJwt
 import Meld exposing (Error, Meld)
 import Messages exposing (Msg(..))
 import Model exposing (Model)
@@ -30,6 +31,7 @@ login meld =
                             | route = Route.Transactions
                             , token = Just result.token
                             , authMgr = DRec.clear ma.authMgr
+                            , claimsMgr = MJwt.init (Just result.token)
                         }
 
                     storeToken ma =
@@ -53,6 +55,7 @@ logout meld =
                             | route = Route.Login
                             , token = Nothing
                             , authMgr = DRec.clear ma.authMgr
+                            , claimsMgr = DRec.clear ma.claimsMgr
                         }
 
                     clearStorage ma =

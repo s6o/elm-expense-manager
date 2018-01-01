@@ -4,9 +4,10 @@ module Api.Init
         )
 
 import Api.Currency
-import Meld exposing (Error, Meld)
+import Api.User
 import Messages exposing (Msg(..))
 import Model exposing (Model)
+import Task
 
 
 {-| Dispatch initial request to initialize the `Model` after successful auth.
@@ -18,11 +19,12 @@ initialRequests model =
             (\t ->
                 let
                     initialTasks =
-                        [ Api.Currency.read ]
+                        [ Api.Currency.read
+                        , Api.User.read
+                        ]
                 in
-                Meld.init { model | loading = model.loading + List.length initialTasks }
-                    |> Meld.addTasks initialTasks
-                    |> Meld.cmds (Responses 0)
-             --<| List.length initialTasks)
+                Task.perform
+                    Request
+                    (Task.succeed initialTasks)
             )
         |> Maybe.withDefault Cmd.none

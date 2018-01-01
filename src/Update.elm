@@ -12,6 +12,8 @@ import Api.Init exposing (initialRequests)
 import Api.Response
 import Manager.Auth as MAuth
 import Manager.Currency as MCurrency
+import Manager.Jwt as MJwt
+import Manager.User as MUser
 import Material
 import Material.Layout as Layout
 import Meld exposing (Error(..))
@@ -35,7 +37,9 @@ init flags =
             , tabs = initTabs
             , token = flags.token
             , authMgr = MAuth.init
+            , claimsMgr = MJwt.init flags.token
             , currencyMgr = MCurrency.init
+            , userMgr = MUser.init
             }
     in
     ( model
