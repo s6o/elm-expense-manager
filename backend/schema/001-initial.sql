@@ -172,7 +172,9 @@ begin
 
     select sign(row_to_json(r), current_setting('app.jwt_secret')) as token
     from (
-        select _role as role, login.email as email,
+        select _role as role,
+            (select am.mid from api.managers am where am.email = login.email) as uid,
+            login.email as email,
             extract(epoch from now())::integer + 60*60 as exp
     ) r
     into result;
@@ -195,6 +197,7 @@ grant webuser to authenticator;
 
 grant usage on schema api, basic_auth to anon;
 grant select on table pg_authid, basic_auth.users to anon;
+grant select on table api.managers to anon;
 grant execute on function api.login(text, text) to anon;
 
 grant all on schema api to webuser;
