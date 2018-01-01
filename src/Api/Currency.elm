@@ -69,8 +69,7 @@ patch meld =
                 |> Result.withDefault ""
     in
     model.apiBaseUrl
-        ++ "/currency?iso_code=eq."
-        ++ cid
+        ++ ("/currency?iso_code=eq." ++ cid)
         |> HttpBuilder.patch
         |> withHeaders (tokenHeader model.token)
         |> withJsonBody (DRec.toObject model.currencyMgr)
