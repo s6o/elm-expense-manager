@@ -11,6 +11,7 @@ module DRec
         , empty
         , errorMessage
         , field
+        , fromArray
         , fromBool
         , fromDRec
         , fromFloat
@@ -31,6 +32,7 @@ module DRec
         , setJson
         , setString
         , setWith
+        , toArray
         , toBool
         , toDRec
         , toFloat
@@ -70,19 +72,20 @@ decoding from and to JSON.
 
 # Decode
 
-@docs fromBool, fromDRec, fromFloat, fromInt, fromJson, fromMaybe, fromString
+@docs fromArray, fromBool, fromDRec, fromFloat, fromInt, fromJson, fromMaybe, fromString
 
 Decode from Elm types.
 
 
 # Encode
 
-@docs toBool, toDRec, toFloat, toInt, toJson, toMaybe, toString
+@docs toArray, toBool, toDRec, toFloat, toInt, toJson, toMaybe, toString
 
 Encode to Elm types.
 
 -}
 
+import Array exposing (Array)
 import Dict exposing (Dict)
 import Json.Decode exposing (Decoder)
 import Json.Encode
@@ -95,6 +98,7 @@ import Json.Encode
 -}
 type DType
     = DNever
+    | DArray DValue
     | DBool
     | DDRec DSchema
     | DFloat
@@ -130,6 +134,7 @@ type DRec
 -}
 type DField
     = DBool_ Bool
+    | DArray_ (Array DField)
     | DDRec_ (Result DError DRec)
     | DFloat_ Float
     | DInt_ Int
@@ -149,6 +154,12 @@ type DSchema
 fieldType : DField -> DType
 fieldType dfield =
     case dfield of
+        DArray_ dfa ->
+            Array.toList dfa
+                |> List.head
+                |> Maybe.map (\df -> DArray <| fieldSubType df)
+                |> Maybe.withDefault (DArray VNil)
+
         DBool_ _ ->
             DBool
 
@@ -175,30 +186,37 @@ fieldType dfield =
                     DMaybe VNil
 
                 Just f ->
-                    case fieldType f of
-                        DBool ->
-                            DMaybe VBool
-
-                        DDRec dschema ->
-                            DMaybe (VDRec dschema)
-
-                        DFloat ->
-                            DMaybe VFloat
-
-                        DInt ->
-                            DMaybe VInt
-
-                        DJson ->
-                            DMaybe VJson
-
-                        DString ->
-                            DMaybe VString
-
-                        _ ->
-                            DNever
+                    DMaybe <| fieldSubType f
 
         DString_ _ ->
             DString
+
+
+{-| @private
+-}
+fieldSubType : DField -> DValue
+fieldSubType dfield =
+    case fieldType dfield of
+        DBool ->
+            VBool
+
+        DDRec dschema ->
+            VDRec dschema
+
+        DFloat ->
+            VFloat
+
+        DInt ->
+            VInt
+
+        DJson ->
+            VJson
+
+        DString ->
+            VString
+
+        _ ->
+            VNil
 
 
 {-| Error tags
@@ -284,6 +302,9 @@ field field dtype rr =
     in
     case dtype of
         DNever ->
+            typeError dtype
+
+        DArray VNil ->
             typeError dtype
 
         DMaybe VNil ->
@@ -495,6 +516,14 @@ schema rr =
 -- ENCODE
 
 
+{-| Convert from `Array a` to DField.
+-}
+fromArray : (a -> DField) -> Array a -> DField
+fromArray f v =
+    Array.map f v
+        |> DArray_
+
+
 {-| Convert from `Bool` to `DField`.
 -}
 fromBool : Bool -> DField
@@ -551,6 +580,34 @@ fromString v =
 
 
 -- DECODE
+
+
+{-| Convert from `DField` to `Array a`
+-}
+toArray : (Result DError DField -> Result DError a) -> Result DError DField -> Result DError (Array a)
+toArray toValue rf =
+    case rf of
+        Err x ->
+            Err x
+
+        Ok dfield ->
+            case dfield of
+                DArray_ dfarray ->
+                    dfarray
+                        |> Array.foldr
+                            (\df accum ->
+                                toValue (Ok df)
+                                    |> Result.map (\v -> v :: accum)
+                                    |> Result.withDefault accum
+                            )
+                            []
+                        |> Array.fromList
+                        |> Ok
+
+                _ ->
+                    "toArray"
+                        |> TypeMismatch
+                        |> Err
 
 
 {-| Convert from `DField` to `Bool`.
@@ -732,6 +789,19 @@ toString rf =
 
 {-| @private
 -}
+arrayDecoder : String -> DRec -> (a -> DField) -> Decoder (Array a) -> Decoder DRec
+arrayDecoder fname drec toItem decoder =
+    decoder
+        |> Json.Decode.field fname
+        |> Json.Decode.map
+            (\v ->
+                setWith fname (fromArray toItem) v (Ok drec)
+                    |> Result.withDefault drec
+            )
+
+
+{-| @private
+-}
 fieldDecoder : String -> DType -> DRec -> Decoder DRec
 fieldDecoder fname dtype drec =
     case dtype of
@@ -740,6 +810,39 @@ fieldDecoder fname dtype drec =
 
         DMaybe VNil ->
             Json.Decode.fail "DMaybe VNil is never decoded."
+
+        DArray dvalue ->
+            case dvalue of
+                VNil ->
+                    Json.Decode.fail "DArray VNil is never decoded."
+
+                VBool ->
+                    Json.Decode.array Json.Decode.bool
+                        |> arrayDecoder fname drec fromBool
+
+                VDRec (DSchema ( forder, stypes )) ->
+                    let
+                        subRec =
+                            DRec { fields = forder, schema = stypes, store = Dict.empty }
+                    in
+                    Json.Decode.array (subDecoder subRec)
+                        |> arrayDecoder fname drec fromDRec
+
+                VFloat ->
+                    Json.Decode.array Json.Decode.float
+                        |> arrayDecoder fname drec fromFloat
+
+                VInt ->
+                    Json.Decode.array Json.Decode.int
+                        |> arrayDecoder fname drec fromInt
+
+                VJson ->
+                    Json.Decode.array Json.Decode.value
+                        |> arrayDecoder fname drec fromJson
+
+                VString ->
+                    Json.Decode.array Json.Decode.string
+                        |> arrayDecoder fname drec fromString
 
         DBool ->
             Json.Decode.field fname Json.Decode.bool
@@ -943,6 +1046,24 @@ subObject (DRec r) =
 objectField : String -> List ( String, Json.Encode.Value ) -> DField -> List ( String, Json.Encode.Value )
 objectField field accum dfield =
     case dfield of
+        DArray_ dfarray ->
+            let
+                valueArray =
+                    dfarray
+                        |> Array.foldr
+                            (\df accum ->
+                                case objectField field [] df |> List.head of
+                                    Nothing ->
+                                        accum
+
+                                    Just ( _, v ) ->
+                                        v :: accum
+                            )
+                            []
+                        |> Array.fromList
+            in
+            ( field, Json.Encode.array valueArray ) :: accum
+
         DBool_ b ->
             ( field, Json.Encode.bool b ) :: accum
 
@@ -980,59 +1101,5 @@ objectField field accum dfield =
                 Just df ->
                     objectField field accum df
 
-        {- }
-           case Debug.log "Maybe type" (fieldType df) of
-               DMaybe VNil ->
-                   ( field, Json.Encode.null ) :: accum
-
-               DMaybe VBool ->
-                   toBool (Ok df)
-                       |> Result.map (\v -> ( field, Json.Encode.bool v ) :: accum)
-                       |> Result.withDefault accum
-
-               DMaybe (VDRec _) ->
-                   let
-                       sdrec =
-                           toDRec (Ok df)
-                   in
-                   case sdrec of
-                       Err _ ->
-                           let
-                               dbgMsg msg =
-                                   errorMessage sdrec
-                                       |> Maybe.map (\m -> msg ++ " | " ++ m)
-                                       |> Maybe.withDefault ""
-
-                               _ =
-                                   Debug.log (dbgMsg <| "Nested `DRec` failure for field: " ++ field) sdrec
-                           in
-                           ( field, Json.Encode.null ) :: accum
-
-                       Ok dr ->
-                           ( field, subObject dr ) :: accum
-
-               DMaybe VFloat ->
-                   toFloat (Ok df)
-                       |> Result.map (\v -> ( field, Json.Encode.float v ) :: accum)
-                       |> Result.withDefault accum
-
-               DMaybe VInt ->
-                   toInt (Ok df)
-                       |> Result.map (\v -> ( field, Json.Encode.int v ) :: accum)
-                       |> Result.withDefault accum
-
-               DMaybe VJson ->
-                   toJson (Ok df)
-                       |> Result.map (\v -> ( field, v ) :: accum)
-                       |> Result.withDefault accum
-
-               DMaybe VString ->
-                   toString (Ok df)
-                       |> Result.map (\v -> ( field, Json.Encode.string v ) :: accum)
-                       |> Result.withDefault accum
-
-               _ ->
-                   Debug.log "Fishy..." accum
-        -}
         DString_ s ->
             ( field, Json.Encode.string s ) :: accum
