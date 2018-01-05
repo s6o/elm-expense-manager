@@ -44,7 +44,7 @@ init mtoken =
                                 Base64.decode body
                                     |> Result.withDefault "{}"
                 in
-                DRec.fromStringObject claims json
+                DRec.decodeString claims json
             )
         |> Maybe.withDefault claims
 

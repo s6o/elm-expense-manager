@@ -79,7 +79,7 @@ postCredentials meld =
     else
         let
             payload =
-                DRec.toObject model.authMgr
+                DRec.encoder model.authMgr
         in
         model.apiBaseUrl
             ++ "/rpc/login"

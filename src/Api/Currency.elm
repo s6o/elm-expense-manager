@@ -72,7 +72,7 @@ patch meld =
         ++ ("/currency?iso_code=eq." ++ cid)
         |> HttpBuilder.patch
         |> withHeaders (tokenHeader model.token)
-        |> withJsonBody (DRec.toObject model.currencyMgr)
+        |> withJsonBody (DRec.encoder model.currencyMgr)
         |> withExpect Http.expectString
         |> HttpBuilder.toTask
         |> Task.mapError Meld.EHttp
