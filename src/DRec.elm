@@ -7,8 +7,11 @@ module DRec
         , DType(..)
         , DValue(..)
         , clear
+        , decodeString
+        , decodeValue
         , decoder
         , empty
+        , encoder
         , errorMessage
         , field
         , fromArray
@@ -18,9 +21,7 @@ module DRec
         , fromInt
         , fromJson
         , fromMaybe
-        , fromObject
         , fromString
-        , fromStringObject
         , get
         , hasSchema
         , isEmpty
@@ -39,7 +40,6 @@ module DRec
         , toInt
         , toJson
         , toMaybe
-        , toObject
         , toString
         )
 
@@ -62,7 +62,7 @@ decoding from and to JSON.
 
 ## JSON interop
 
-@docs decoder, fromObject, fromStringObject, toObject
+@docs decoder, decodeValue, decodeString, encoder
 
 
 # Query
@@ -983,8 +983,8 @@ decoder rr =
 
 {-| Initialize `DRec` data by decoding specified JSON (`Json.Encode.Value`) accordingly to `DRec` schema.
 -}
-fromObject : Result DError DRec -> Json.Encode.Value -> Result DError DRec
-fromObject rr json =
+decodeValue : Result DError DRec -> Json.Encode.Value -> Result DError DRec
+decodeValue rr json =
     case rr of
         Err x ->
             Err x
@@ -999,8 +999,8 @@ fromObject rr json =
 
 {-| Initialize `DRec` data by decoding specified JSON string literal accordingly to `DRec` schema.
 -}
-fromStringObject : Result DError DRec -> String -> Result DError DRec
-fromStringObject rr json =
+decodeString : Result DError DRec -> String -> Result DError DRec
+decodeString rr json =
     case rr of
         Err x ->
             Err x
@@ -1015,8 +1015,8 @@ fromStringObject rr json =
 
 {-| Encode `DRec` into a JSON object accordingly to `DRec` schema.
 -}
-toObject : Result DError DRec -> Json.Encode.Value
-toObject rr =
+encoder : Result DError DRec -> Json.Encode.Value
+encoder rr =
     case rr of
         Err x ->
             Json.Encode.object []
