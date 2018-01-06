@@ -22,7 +22,7 @@ read meld =
             (\drec ->
                 let
                     taskModel ma =
-                        { ma | currencyMgr = Ok drec }
+                        { ma | currency = Ok drec }
                 in
                 Meld.withMerge taskModel meld
             )
@@ -52,7 +52,7 @@ get meld =
         ++ "/currency"
         |> HttpBuilder.get
         |> withHeaders (objectHeader ++ tokenHeader model.token)
-        |> withExpect (Http.expectJson (DRec.decoder model.currencyMgr))
+        |> withExpect (Http.expectJson (DRec.decoder model.currency))
         |> HttpBuilder.toTask
         |> Task.mapError Meld.EHttp
 
@@ -64,7 +64,7 @@ patch meld =
             Meld.model meld
 
         cid =
-            DRec.get "iso_code" model.currencyMgr
+            DRec.get "iso_code" model.currency
                 |> DRec.toString
                 |> Result.withDefault ""
     in
@@ -72,7 +72,7 @@ patch meld =
         ++ ("/currency?iso_code=eq." ++ cid)
         |> HttpBuilder.patch
         |> withHeaders (tokenHeader model.token)
-        |> withJsonBody (DRec.encoder model.currencyMgr)
+        |> withJsonBody (DRec.encoder model.currency)
         |> withExpect Http.expectString
         |> HttpBuilder.toTask
         |> Task.mapError Meld.EHttp

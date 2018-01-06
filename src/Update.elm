@@ -10,6 +10,7 @@ module Update
 import Api.Auth
 import Api.Init exposing (initialRequests)
 import Api.Response
+import Dict
 import Manager.Auth as MAuth
 import Manager.Currency as MCurrency
 import Manager.Jwt as MJwt
@@ -36,10 +37,12 @@ init flags =
             , route = Route.Empty
             , tabs = initTabs
             , token = flags.token
-            , authMgr = MAuth.init
-            , claimsMgr = MJwt.init flags.token
-            , currencyMgr = MCurrency.init
-            , userMgr = MUser.init
+            , auth = MAuth.init
+            , claims = MJwt.init flags.token
+            , user = MUser.init
+            , currency = MCurrency.init
+            , accounts = []
+            , categories = Dict.empty
             }
     in
     ( model
@@ -117,7 +120,10 @@ update msg model =
                                 |> Maybe.withDefault (Meld.errorMessage meldError)
                                 |> Just
                       }
-                    , case Api.Response.isUnauthorized meldError of
+                    , case
+                        Api.Response.isUnauthorized meldError
+                            || Api.Response.isServerError meldError
+                      of
                         False ->
                             Cmd.none
 

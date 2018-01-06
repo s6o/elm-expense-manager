@@ -30,8 +30,8 @@ login meld =
                         { ma
                             | route = Route.Transactions
                             , token = Just result.token
-                            , authMgr = DRec.clear ma.authMgr
-                            , claimsMgr = MJwt.init (Just result.token)
+                            , auth = DRec.clear ma.auth
+                            , claims = MJwt.init (Just result.token)
                         }
 
                     storeToken ma =
@@ -54,8 +54,8 @@ logout meld =
                         { ma
                             | route = Route.Login
                             , token = Nothing
-                            , authMgr = DRec.clear ma.authMgr
-                            , claimsMgr = DRec.clear ma.claimsMgr
+                            , auth = DRec.clear ma.auth
+                            , claims = DRec.clear ma.claims
                         }
 
                     clearStorage ma =
@@ -72,14 +72,14 @@ postCredentials meld =
         model =
             Meld.model meld
     in
-    if DRec.isEmpty model.authMgr then
+    if DRec.isEmpty model.auth then
         "Model's `authManager` is not set."
             |> Meld.EMsg
             |> Task.fail
     else
         let
             payload =
-                DRec.encoder model.authMgr
+                DRec.encoder model.auth
         in
         model.apiBaseUrl
             ++ "/rpc/login"

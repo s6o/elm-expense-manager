@@ -3,6 +3,8 @@ module Api.Init
         ( initialRequests
         )
 
+import Api.Account
+import Api.Category
 import Api.Currency
 import Api.User
 import Messages exposing (Msg(..))
@@ -21,6 +23,8 @@ initialRequests model =
                     initialTasks =
                         [ Api.Currency.read
                         , Api.User.read
+                        , Api.Account.read
+                        , Api.Category.read
                         ]
                 in
                 Task.perform

@@ -32,7 +32,7 @@ view model =
                 , Textfield.floatingLabel
                 , Textfield.email
                 , css "width" "100%"
-                , DRec.get "email" model.authMgr
+                , DRec.get "email" model.auth
                     |> DRec.toString
                     |> Result.withDefault ""
                     |> Textfield.value
@@ -51,7 +51,7 @@ view model =
                 , Textfield.floatingLabel
                 , Textfield.password
                 , css "width" "100%"
-                , DRec.get "pass" model.authMgr
+                , DRec.get "pass" model.auth
                     |> DRec.toString
                     |> Result.withDefault ""
                     |> Textfield.value

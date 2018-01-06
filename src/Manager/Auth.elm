@@ -15,7 +15,7 @@ import Task exposing (Task)
 
 
 type alias Parent m =
-    { m | authMgr : Result DError DRec }
+    { m | auth : Result DError DRec }
 
 
 type alias Token =
@@ -38,7 +38,7 @@ init =
 fieldInput : String -> Parent m -> String -> ( Parent m, Cmd msg )
 fieldInput field model value =
     case
-        DRec.setString field value model.authMgr
+        DRec.setString field value model.auth
     of
         Err _ ->
             ( model
@@ -46,7 +46,7 @@ fieldInput field model value =
             )
 
         Ok drec ->
-            ( { model | authMgr = Ok drec }
+            ( { model | auth = Ok drec }
             , Cmd.none
             )
 
@@ -62,17 +62,17 @@ validate meld =
                 |> EMsg
                 |> Task.fail
     in
-    if DRec.isEmpty model.authMgr then
+    if DRec.isEmpty model.auth then
         credsFail
     else
         let
             email =
-                DRec.get "email" model.authMgr
+                DRec.get "email" model.auth
                     |> DRec.toString
                     |> Result.withDefault ""
 
             pass =
-                DRec.get "pass" model.authMgr
+                DRec.get "pass" model.auth
                     |> DRec.toString
                     |> Result.withDefault ""
         in

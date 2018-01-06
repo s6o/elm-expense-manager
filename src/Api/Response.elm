@@ -2,6 +2,7 @@ module Api.Response
     exposing
         ( Error
         , errorMessage
+        , isServerError
         , isUnauthorized
         )
 
@@ -45,6 +46,21 @@ errorMessage merr =
 
                 _ ->
                     Nothing
+
+
+isServerError : Meld.Error -> Bool
+isServerError merr =
+    case Meld.httpError merr of
+        Nothing ->
+            False
+
+        Just error ->
+            case error of
+                Http.BadStatus { status } ->
+                    status.code == 500
+
+                _ ->
+                    False
 
 
 isUnauthorized : Meld.Error -> Bool

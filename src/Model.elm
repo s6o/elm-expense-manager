@@ -24,8 +24,10 @@ type alias Model =
     , route : Route
     , tabs : Dict String Tab
     , token : Maybe String
-    , authMgr : Result DError DRec
-    , claimsMgr : Result DError DRec
-    , currencyMgr : Result DError DRec
-    , userMgr : Result DError DRec
+    , auth : Result DError DRec
+    , claims : Result DError DRec
+    , user : Result DError DRec
+    , currency : Result DError DRec
+    , accounts : List (Result DError DRec)
+    , categories : Dict String (List (Result DError DRec))
     }

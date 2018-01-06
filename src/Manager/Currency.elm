@@ -12,7 +12,7 @@ import Task exposing (Task)
 
 
 type alias Parent m =
-    { m | currencyMgr : Result DError DRec }
+    { m | currency : Result DError DRec }
 
 
 init : Result DError DRec
@@ -32,15 +32,15 @@ fieldInput field model value =
             String.toInt value
                 |> Result.map
                     (\i ->
-                        DRec.setInt field i model.currencyMgr
-                            |> Result.map (\drec -> ( { model | currencyMgr = Ok drec }, Cmd.none ))
+                        DRec.setInt field i model.currency
+                            |> Result.map (\drec -> ( { model | currency = Ok drec }, Cmd.none ))
                             |> Result.withDefault ( model, Cmd.none )
                     )
                 |> Result.withDefault ( model, Cmd.none )
 
         _ ->
-            DRec.setString field value model.currencyMgr
-                |> Result.map (\drec -> ( { model | currencyMgr = Ok drec }, Cmd.none ))
+            DRec.setString field value model.currency
+                |> Result.map (\drec -> ( { model | currency = Ok drec }, Cmd.none ))
                 |> Result.withDefault ( model, Cmd.none )
 
 
@@ -55,17 +55,17 @@ validate meld =
                 |> EMsg
                 |> Task.fail
     in
-    if DRec.isEmpty model.currencyMgr then
+    if DRec.isEmpty model.currency then
         fail "Currency fields not set: ISO Code and Sub Unit Ratio are mandatory."
     else
         let
             isoCode =
-                DRec.get "iso_code" model.currencyMgr
+                DRec.get "iso_code" model.currency
                     |> DRec.toString
                     |> Result.withDefault ""
 
             subUnitRatio =
-                DRec.get "sub_unit_ratio" model.currencyMgr
+                DRec.get "sub_unit_ratio" model.currency
                     |> DRec.toInt
                     |> Result.withDefault 0
         in

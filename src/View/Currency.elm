@@ -17,12 +17,12 @@ view : Model -> Html Msg
 view model =
     let
         isoCode =
-            DRec.get "iso_code" model.currencyMgr
+            DRec.get "iso_code" model.currency
                 |> DRec.toString
                 |> Result.withDefault ""
 
         subUnitRatio =
-            DRec.get "sub_unit_ratio" model.currencyMgr
+            DRec.get "sub_unit_ratio" model.currency
                 |> DRec.toInt
                 |> Result.withDefault 0
     in
@@ -78,7 +78,7 @@ view model =
                 , Textfield.floatingLabel
                 , Textfield.maxlength 3
                 , css "width" "100%"
-                , DRec.get "symbol" model.currencyMgr
+                , DRec.get "symbol" model.currency
                     |> DRec.toString
                     |> Result.withDefault ""
                     |> Textfield.value
@@ -97,7 +97,7 @@ view model =
                 , Textfield.floatingLabel
                 , Textfield.maxlength 1
                 , css "width" "100%"
-                , DRec.get "decimal_separator" model.currencyMgr
+                , DRec.get "decimal_separator" model.currency
                     |> DRec.toString
                     |> Result.withDefault ""
                     |> Textfield.value
@@ -116,7 +116,7 @@ view model =
                 , Textfield.floatingLabel
                 , Textfield.maxlength 1
                 , css "width" "100%"
-                , DRec.get "thousand_separator" model.currencyMgr
+                , DRec.get "thousand_separator" model.currency
                     |> DRec.toString
                     |> Result.withDefault ""
                     |> Textfield.value
