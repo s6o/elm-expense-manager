@@ -20,6 +20,7 @@ module DRec
         , fromFloat
         , fromInt
         , fromJson
+        , fromList
         , fromMaybe
         , fromString
         , get
@@ -39,6 +40,7 @@ module DRec
         , toFloat
         , toInt
         , toJson
+        , toList
         , toMaybe
         , toString
         )
@@ -72,14 +74,14 @@ decoding from and to JSON.
 
 # Decode
 
-@docs fromArray, fromBool, fromDRec, fromFloat, fromInt, fromJson, fromMaybe, fromString
+@docs fromArray, fromBool, fromDRec, fromFloat, fromInt, fromJson, fromList, fromMaybe, fromString
 
 Decode from Elm types.
 
 
 # Encode
 
-@docs toArray, toBool, toDRec, toFloat, toInt, toJson, toMaybe, toString
+@docs toArray, toBool, toDRec, toFloat, toInt, toJson, toList, toMaybe, toString
 
 Encode to Elm types.
 
@@ -104,6 +106,7 @@ type DType
     | DFloat
     | DInt
     | DJson
+    | DList DValue
     | DMaybe DValue
     | DString
 
@@ -133,12 +136,13 @@ type DRec
 {-| `DRec` field name and `DType` mapping, see `field`.
 -}
 type DField
-    = DBool_ Bool
-    | DArray_ (Array DField)
+    = DArray_ (Array DField)
+    | DBool_ Bool
     | DDRec_ (Result DError DRec)
     | DFloat_ Float
     | DInt_ Int
     | DJson_ Json.Encode.Value
+    | DList_ (List DField)
     | DMaybe_ (Maybe DField)
     | DString_ String
 
@@ -155,8 +159,7 @@ fieldType : DField -> DType
 fieldType dfield =
     case dfield of
         DArray_ dfa ->
-            Array.toList dfa
-                |> List.head
+            Array.get 0 dfa
                 |> Maybe.map (\df -> DArray <| fieldSubType df)
                 |> Maybe.withDefault (DArray VNil)
 
@@ -179,6 +182,12 @@ fieldType dfield =
 
         DJson_ _ ->
             DJson
+
+        DList_ dfl ->
+            dfl
+                |> List.head
+                |> Maybe.map (\df -> DList <| fieldSubType df)
+                |> Maybe.withDefault (DList VNil)
 
         DMaybe_ mf ->
             case mf of
@@ -559,6 +568,14 @@ fromJson v =
     DJson_ v
 
 
+{-| Convert from `List a` to DField.
+-}
+fromList : (a -> DField) -> List a -> DField
+fromList f v =
+    List.map f v
+        |> DList_
+
+
 {-| Convert from `Maybe a` to `DField`.
 -}
 fromMaybe : (a -> DField) -> Maybe a -> DField
@@ -720,6 +737,33 @@ toJson rf =
                         |> Err
 
 
+{-| Convert from `DField` to `List a`.
+-}
+toList : (Result DError DField -> Result DError a) -> Result DError DField -> Result DError (List a)
+toList toValue rf =
+    case rf of
+        Err x ->
+            Err x
+
+        Ok dfield ->
+            case dfield of
+                DList_ dfl ->
+                    dfl
+                        |> List.foldr
+                            (\df accum ->
+                                toValue (Ok df)
+                                    |> Result.map (\v -> v :: accum)
+                                    |> Result.withDefault accum
+                            )
+                            []
+                        |> Ok
+
+                _ ->
+                    "toArray"
+                        |> TypeMismatch
+                        |> Err
+
+
 {-| Convert from a `DField` of `DType` 'DMaybe a' to `Maybe a`.
 
     rec : DRec
@@ -734,10 +778,10 @@ toJson rf =
     token : DRec -> Maybe String
     token drec =
         DRec.get "token" drec
-            |> DRec.toMaybe (DRec.toString >> Result.toMaybe)
+            |> DRec.toMaybe DRec.toString
 
 -}
-toMaybe : (Result DError DField -> Maybe a) -> Result DError DField -> Result DError (Maybe a)
+toMaybe : (Result DError DField -> Result DError a) -> Result DError DField -> Result DError (Maybe a)
 toMaybe toValue rf =
     case rf of
         Err x ->
@@ -753,6 +797,8 @@ toMaybe toValue rf =
 
                         Just df ->
                             toValue (Ok df)
+                                |> Result.map Just
+                                |> Result.withDefault Nothing
                                 |> Ok
 
                 _ ->
@@ -802,14 +848,37 @@ arrayDecoder fname drec toItem decoder =
 
 {-| @private
 -}
+listDecoder : String -> DRec -> (a -> DField) -> Decoder (List a) -> Decoder DRec
+listDecoder fname drec toItem decoder =
+    decoder
+        |> Json.Decode.field fname
+        |> Json.Decode.map
+            (\v ->
+                setWith fname (fromList toItem) v (Ok drec)
+                    |> Result.withDefault drec
+            )
+
+
+{-| @private
+-}
+maybeDecoder : String -> DRec -> (a -> DField) -> Decoder (Maybe a) -> Decoder DRec
+maybeDecoder fname drec toItem decoder =
+    decoder
+        |> Json.Decode.field fname
+        |> Json.Decode.map
+            (\v ->
+                setWith fname (fromMaybe toItem) v (Ok drec)
+                    |> Result.withDefault drec
+            )
+
+
+{-| @private
+-}
 fieldDecoder : String -> DType -> DRec -> Decoder DRec
 fieldDecoder fname dtype drec =
     case dtype of
         DNever ->
             Json.Decode.fail "DNever is never decoded."
-
-        DMaybe VNil ->
-            Json.Decode.fail "DMaybe VNil is never decoded."
 
         DArray dvalue ->
             case dvalue of
@@ -888,57 +957,71 @@ fieldDecoder fname dtype drec =
                             |> Result.withDefault drec
                     )
 
-        DMaybe VBool ->
-            Json.Decode.maybe (Json.Decode.field fname Json.Decode.bool)
-                |> Json.Decode.map
-                    (\vm ->
-                        setWith fname (fromMaybe fromBool) vm (Ok drec)
-                            |> Result.withDefault drec
-                    )
+        DList dvalue ->
+            case dvalue of
+                VNil ->
+                    Json.Decode.fail "DList VNil is never decoded."
 
-        DMaybe (VDRec (DSchema ( forder, stypes ))) ->
-            let
-                subRec =
-                    DRec { fields = forder, schema = stypes, store = Dict.empty }
-            in
-            Json.Decode.maybe (Json.Decode.field fname (subDecoder subRec))
-                |> Json.Decode.map
-                    (\vm ->
-                        setWith fname (fromMaybe fromDRec) vm (Ok drec)
-                            |> Result.withDefault drec
-                    )
+                VBool ->
+                    Json.Decode.list Json.Decode.bool
+                        |> listDecoder fname drec fromBool
 
-        DMaybe VFloat ->
-            Json.Decode.maybe (Json.Decode.field fname Json.Decode.float)
-                |> Json.Decode.map
-                    (\vm ->
-                        setWith fname (fromMaybe fromFloat) vm (Ok drec)
-                            |> Result.withDefault drec
-                    )
+                VDRec (DSchema ( forder, stypes )) ->
+                    let
+                        subRec =
+                            DRec { fields = forder, schema = stypes, store = Dict.empty }
+                    in
+                    Json.Decode.list (subDecoder subRec)
+                        |> listDecoder fname drec fromDRec
 
-        DMaybe VInt ->
-            Json.Decode.maybe (Json.Decode.field fname Json.Decode.int)
-                |> Json.Decode.map
-                    (\vm ->
-                        setWith fname (fromMaybe fromInt) vm (Ok drec)
-                            |> Result.withDefault drec
-                    )
+                VFloat ->
+                    Json.Decode.list Json.Decode.float
+                        |> listDecoder fname drec fromFloat
 
-        DMaybe VJson ->
-            Json.Decode.maybe (Json.Decode.field fname Json.Decode.value)
-                |> Json.Decode.map
-                    (\vm ->
-                        setWith fname (fromMaybe fromJson) vm (Ok drec)
-                            |> Result.withDefault drec
-                    )
+                VInt ->
+                    Json.Decode.list Json.Decode.int
+                        |> listDecoder fname drec fromInt
 
-        DMaybe VString ->
-            Json.Decode.maybe (Json.Decode.field fname Json.Decode.string)
-                |> Json.Decode.map
-                    (\vm ->
-                        setWith fname (fromMaybe fromString) vm (Ok drec)
-                            |> Result.withDefault drec
-                    )
+                VJson ->
+                    Json.Decode.list Json.Decode.value
+                        |> listDecoder fname drec fromJson
+
+                VString ->
+                    Json.Decode.list Json.Decode.string
+                        |> listDecoder fname drec fromString
+
+        DMaybe dvalue ->
+            case dvalue of
+                VNil ->
+                    Json.Decode.fail "DMaybe VNil is never decoded."
+
+                VBool ->
+                    Json.Decode.maybe Json.Decode.bool
+                        |> maybeDecoder fname drec fromBool
+
+                VDRec (DSchema ( forder, stypes )) ->
+                    let
+                        subRec =
+                            DRec { fields = forder, schema = stypes, store = Dict.empty }
+                    in
+                    Json.Decode.maybe (subDecoder subRec)
+                        |> maybeDecoder fname drec fromDRec
+
+                VFloat ->
+                    Json.Decode.maybe Json.Decode.float
+                        |> maybeDecoder fname drec fromFloat
+
+                VInt ->
+                    Json.Decode.maybe Json.Decode.int
+                        |> maybeDecoder fname drec fromInt
+
+                VJson ->
+                    Json.Decode.maybe Json.Decode.value
+                        |> maybeDecoder fname drec fromJson
+
+                VString ->
+                    Json.Decode.maybe Json.Decode.string
+                        |> maybeDecoder fname drec fromString
 
         DString ->
             Json.Decode.field fname Json.Decode.string
@@ -1092,6 +1175,23 @@ objectField field accum dfield =
 
         DJson_ v ->
             ( field, v ) :: accum
+
+        DList_ dfl ->
+            let
+                valueList =
+                    dfl
+                        |> List.foldr
+                            (\df accum ->
+                                case objectField field [] df |> List.head of
+                                    Nothing ->
+                                        accum
+
+                                    Just ( _, v ) ->
+                                        v :: accum
+                            )
+                            []
+            in
+            ( field, Json.Encode.list valueList ) :: accum
 
         DMaybe_ mv ->
             case mv of
