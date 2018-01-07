@@ -41,7 +41,7 @@ init flags =
             , claims = MJwt.init flags.token
             , user = MUser.init
             , currency = MCurrency.init
-            , accounts = []
+            , accounts = Dict.empty
             , categories = Dict.empty
             }
     in

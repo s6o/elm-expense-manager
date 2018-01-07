@@ -13,7 +13,8 @@ import Material.Options as Options exposing (css)
 import Messages exposing (Msg(..))
 import Model exposing (Model)
 import Route exposing (Route(..), Tab)
-import View.Currency as C
+import View.Accounts as Accounts
+import View.Currency as Currency
 import View.Login as Login
 import View.Logout as Logout
 
@@ -106,11 +107,12 @@ routeLayout model =
                         ]
 
                     Currency ->
-                        [ C.view model
+                        [ Currency.view model
                         ]
 
                     Accounts ->
-                        []
+                        [ Accounts.view model
+                        ]
 
                     Categories ->
                         []

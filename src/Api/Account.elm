@@ -5,6 +5,7 @@ module Api.Account
 
 import Api.Headers exposing (tokenHeader)
 import DRec exposing (DError, DRec)
+import Dict
 import Http
 import HttpBuilder exposing (..)
 import Json.Decode
@@ -23,7 +24,12 @@ read meld =
             (\results ->
                 let
                     taskModel ma =
-                        { ma | accounts = List.map Ok results }
+                        { ma
+                            | accounts =
+                                results
+                                    |> List.map (\drec -> ( Account.id (Ok drec), Ok drec ))
+                                    |> Dict.fromList
+                        }
                 in
                 Meld.withMerge taskModel meld
             )
