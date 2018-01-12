@@ -35,28 +35,28 @@ read meld =
             )
 
 
-toTree : DRec -> List ( String, List (Result DError DRec) ) -> List ( String, List (Result DError DRec) )
+toTree : DRec -> List ( String, List DRec ) -> List ( String, List DRec )
 toTree drec subs =
     case subs of
         [] ->
-            ( DRec.get "parent_path" (Ok drec)
+            ( DRec.get "parent_path" drec
                 |> DRec.toString
                 |> Result.withDefault ""
-            , [ Ok drec ]
+            , [ drec ]
             )
                 :: subs
 
         ( spath, slist ) :: rest ->
             let
                 cpath =
-                    DRec.get "parent_path" (Ok drec)
+                    DRec.get "parent_path" drec
                         |> DRec.toString
                         |> Result.withDefault ""
             in
             if cpath == spath then
-                ( cpath, Ok drec :: slist ) :: rest
+                ( cpath, drec :: slist ) :: rest
             else
-                ( cpath, Ok drec :: [] ) :: (( spath, slist ) :: rest)
+                ( cpath, drec :: [] ) :: (( spath, slist ) :: rest)
 
 
 get : Meld Model Error Msg -> Task Error (List DRec)

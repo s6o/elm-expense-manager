@@ -15,7 +15,7 @@ import Task exposing (Task)
 
 
 type alias Parent m =
-    { m | auth : Result DError DRec }
+    { m | auth : DRec }
 
 
 type alias Token =
@@ -28,7 +28,7 @@ decoder =
         |: field "token" Json.Decode.string
 
 
-init : Result DError DRec
+init : DRec
 init =
     DRec.empty
         |> DRec.field "email" DString
@@ -37,18 +37,9 @@ init =
 
 fieldInput : String -> Parent m -> String -> ( Parent m, Cmd msg )
 fieldInput field model value =
-    case
-        DRec.setString field value model.auth
-    of
-        Err _ ->
-            ( model
-            , Cmd.none
-            )
-
-        Ok drec ->
-            ( { model | auth = Ok drec }
-            , Cmd.none
-            )
+    ( { model | auth = DRec.setString field value model.auth }
+    , Cmd.none
+    )
 
 
 validate : Meld (Parent m) Error msg -> Task Error (Meld (Parent m) Error msg)

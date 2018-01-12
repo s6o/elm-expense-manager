@@ -12,12 +12,12 @@ import Regex
 
 type alias Parent m =
     { m
-        | accounts : Dict Int (Result DError DRec)
-        , currency : Result DError DRec
+        | accounts : Dict Int DRec
+        , currency : DRec
     }
 
 
-init : Result DError DRec
+init : DRec
 init =
     DRec.empty
         |> DRec.field "aid" DInt
@@ -28,7 +28,7 @@ init =
         |> DRec.field "bank_name" DString
 
 
-id : Result DError DRec -> Int
+id : DRec -> Int
 id drec =
     DRec.get "aid" drec
         |> DRec.toInt
@@ -39,32 +39,24 @@ fieldInput : Int -> String -> Parent m -> String -> ( Parent m, Cmd msg )
 fieldInput accountId field model value =
     Dict.get accountId model.accounts
         |> Maybe.map
-            (\rr ->
+            (\drec ->
                 let
-                    updateRec =
+                    newDRec =
                         case field of
                             "initial_balance" ->
-                                validateBalance model rr value
+                                validateBalance model drec value
 
                             _ ->
-                                DRec.setString field value rr
+                                DRec.setString field value drec
                 in
-                updateRec
-                    |> Result.map
-                        (\drec ->
-                            ( { model
-                                | accounts =
-                                    Dict.insert accountId (Ok drec) model.accounts
-                              }
-                            , Cmd.none
-                            )
-                        )
-                    |> Result.withDefault ( model, Cmd.none )
+                ( { model | accounts = Dict.insert accountId newDRec model.accounts }
+                , Cmd.none
+                )
             )
         |> Maybe.withDefault ( model, Cmd.none )
 
 
-validateBalance : Parent m -> Result DError DRec -> String -> Result DError DRec
+validateBalance : Parent m -> DRec -> String -> DRec
 validateBalance model drec value =
     let
         decSep =

@@ -34,7 +34,7 @@ view model =
         )
 
 
-account : Model -> Int -> Result DError DRec -> Html Msg
+account : Model -> Int -> DRec -> Html Msg
 account model baseIndex drec =
     Options.div
         [ Elevation.e4

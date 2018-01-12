@@ -15,10 +15,10 @@ import Task exposing (Task)
 
 
 type alias Parent m =
-    { m | currency : Result DError DRec }
+    { m | currency : DRec }
 
 
-init : Result DError DRec
+init : DRec
 init =
     DRec.empty
         |> DRec.field "iso_code" DString
@@ -35,19 +35,19 @@ fieldInput field model value =
             String.toInt value
                 |> Result.map
                     (\i ->
-                        DRec.setInt field i model.currency
-                            |> Result.map (\drec -> ( { model | currency = Ok drec }, Cmd.none ))
-                            |> Result.withDefault ( model, Cmd.none )
+                        ( { model | currency = DRec.setInt field i model.currency }
+                        , Cmd.none
+                        )
                     )
                 |> Result.withDefault ( model, Cmd.none )
 
         _ ->
-            DRec.setString field value model.currency
-                |> Result.map (\drec -> ( { model | currency = Ok drec }, Cmd.none ))
-                |> Result.withDefault ( model, Cmd.none )
+            ( { model | currency = DRec.setString field value model.currency }
+            , Cmd.none
+            )
 
 
-locale : Result DError DRec -> Int -> Locale
+locale : DRec -> Int -> Locale
 locale drec decPlaces =
     { decimals = decPlaces
     , thousandSeparator =
@@ -63,7 +63,7 @@ locale drec decPlaces =
     }
 
 
-subUnitRatio : Result DError DRec -> Int
+subUnitRatio : DRec -> Int
 subUnitRatio drec =
     DRec.get "sub_unit_ratio" drec
         |> DRec.toInt

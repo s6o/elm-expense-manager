@@ -22,7 +22,7 @@ read meld =
             (\drec ->
                 let
                     taskModel ma =
-                        { ma | currency = Ok drec }
+                        { ma | currency = drec }
                 in
                 Meld.withMerge taskModel meld
             )

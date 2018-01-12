@@ -17,7 +17,7 @@ import DRec exposing (DError, DRec, DType(..))
 {-| @private
 Claims as constructed by PostgREST
 -}
-claims : Result DError DRec
+claims : DRec
 claims =
     DRec.empty
         |> DRec.field "role" DString
@@ -29,7 +29,7 @@ claims =
 {-| Initialize a `DRec` of JWT claims.
 In case of an empty token an empty `DRec` is returned.
 -}
-init : Maybe String -> Result DError DRec
+init : Maybe String -> DRec
 init mtoken =
     mtoken
         |> Maybe.map
@@ -45,6 +45,7 @@ init mtoken =
                                     |> Result.withDefault "{}"
                 in
                 DRec.decodeString claims json
+                    |> Result.withDefault claims
             )
         |> Maybe.withDefault claims
 

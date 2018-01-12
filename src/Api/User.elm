@@ -21,7 +21,7 @@ read meld =
             (\drec ->
                 let
                     taskModel ma =
-                        { ma | user = Ok drec }
+                        { ma | user = drec }
                 in
                 Meld.withMerge taskModel meld
             )

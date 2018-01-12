@@ -27,7 +27,7 @@ read meld =
                         { ma
                             | accounts =
                                 results
-                                    |> List.map (\drec -> ( Account.id (Ok drec), Ok drec ))
+                                    |> List.map (\drec -> ( Account.id drec, drec ))
                                     |> Dict.fromList
                         }
                 in

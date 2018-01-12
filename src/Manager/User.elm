@@ -9,12 +9,12 @@ import DRec exposing (DError, DRec, DType(..))
 
 type alias Parent m =
     { m
-        | claims : Result DError DRec
-        , user : Result DError DRec
+        | claims : DRec
+        , user : DRec
     }
 
 
-init : Result DError DRec
+init : DRec
 init =
     DRec.empty
         |> DRec.field "mid" DInt

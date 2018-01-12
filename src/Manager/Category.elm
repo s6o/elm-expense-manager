@@ -6,7 +6,7 @@ module Manager.Category
 import DRec exposing (DError, DRec, DType(..))
 
 
-init : Result DError DRec
+init : DRec
 init =
     DRec.empty
         |> DRec.field "cid" DInt
