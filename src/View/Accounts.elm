@@ -71,9 +71,15 @@ account model baseIndex drec =
                     |> (\balance ->
                             let
                                 amount =
-                                    toFloat balance / Currency.subUnitRatio model.currency
+                                    toFloat balance / (toFloat <| Currency.subUnitRatio model.currency)
+
+                                decs =
+                                    balance % Currency.subUnitRatio model.currency
                             in
-                            FormatNumber.format (Currency.locale model.currency) amount
+                            if decs == 0 then
+                                FormatNumber.format (Currency.locale model.currency 0) amount
+                            else
+                                FormatNumber.format (Currency.locale model.currency 2) amount
                        )
                     |> Textfield.value
                 , TextInput (Account.fieldInput (Account.id drec) "initial_balance") model

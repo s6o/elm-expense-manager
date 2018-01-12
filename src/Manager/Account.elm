@@ -7,10 +7,14 @@ module Manager.Account
 
 import DRec exposing (DError, DRec, DType(..))
 import Dict exposing (Dict)
+import Regex
 
 
 type alias Parent m =
-    { m | accounts : Dict Int (Result DError DRec) }
+    { m
+        | accounts : Dict Int (Result DError DRec)
+        , currency : Result DError DRec
+    }
 
 
 init : Result DError DRec
@@ -62,4 +66,34 @@ fieldInput accountId field model value =
 
 validateBalance : Parent m -> Result DError DRec -> String -> Result DError DRec
 validateBalance model drec value =
-    drec
+    let
+        decSep =
+            DRec.get "decimal_separator" model.currency
+                |> DRec.toString
+                |> Result.withDefault "."
+
+        thoSep =
+            DRec.get "thousand_separator" model.currency
+                |> DRec.toString
+                |> Result.withDefault ""
+
+        subRatio =
+            DRec.get "sub_unit_ratio" model.currency
+                |> DRec.toInt
+                |> Result.map Basics.toFloat
+                |> Result.withDefault 1.0
+
+        numRe =
+            "^\\s*-?\\d+(\\" ++ decSep ++ ")?(\\d{1,2})?\\s*$"
+    in
+    Regex.replace Regex.All (Regex.regex thoSep) (\_ -> "") value
+        |> Regex.find (Regex.AtMost 1) (Regex.regex numRe)
+        |> List.head
+        |> Maybe.map
+            (\r ->
+                String.toFloat r.match
+                    |> Result.map
+                        (\f -> DRec.setInt "initial_balance" (Basics.round (f * subRatio)) drec)
+                    |> Result.withDefault drec
+            )
+        |> Maybe.withDefault drec

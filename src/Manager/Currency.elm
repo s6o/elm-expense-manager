@@ -47,9 +47,9 @@ fieldInput field model value =
                 |> Result.withDefault ( model, Cmd.none )
 
 
-locale : Result DError DRec -> Locale
-locale drec =
-    { decimals = 2
+locale : Result DError DRec -> Int -> Locale
+locale drec decPlaces =
+    { decimals = decPlaces
     , thousandSeparator =
         DRec.get "thousand_separator" drec
             |> DRec.toString
@@ -63,12 +63,11 @@ locale drec =
     }
 
 
-subUnitRatio : Result DError DRec -> Float
+subUnitRatio : Result DError DRec -> Int
 subUnitRatio drec =
     DRec.get "sub_unit_ratio" drec
         |> DRec.toInt
         |> Result.withDefault 1
-        |> toFloat
 
 
 validate : Meld (Parent m) Error msg -> Task Error (Meld (Parent m) Error msg)
