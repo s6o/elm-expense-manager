@@ -5,6 +5,7 @@ module Manager.Account
         , id
         , init
         , initialBalance
+        , validate
         )
 
 import DRec exposing (DError, DField, DRec, DType(..))
@@ -12,7 +13,9 @@ import Dict exposing (Dict)
 import FormatNumber
 import Manager.Currency as Currency
 import Maybe.Extra as EMaybe
+import Meld exposing (Error(..), Meld)
 import Regex
+import Task exposing (Task)
 
 
 type alias Parent m =
@@ -52,18 +55,23 @@ fieldInput action accountId field model value =
             (\drec ->
                 let
                     newDRec =
-                        case field of
-                            "initial_balance" ->
-                                DRec.setWith field (validateBalance action model) value drec
-
-                            _ ->
-                                DRec.setString field value drec
+                        update action field model.currency drec value
                 in
                 ( { model | accounts = Dict.insert accountId newDRec model.accounts }
                 , Cmd.none
                 )
             )
         |> Maybe.withDefault ( model, Cmd.none )
+
+
+update : FieldInput -> String -> DRec -> DRec -> String -> DRec
+update action field currency account value =
+    case field of
+        "initial_balance" ->
+            DRec.setWith field (validateBalance action currency) value account
+
+        _ ->
+            DRec.setString field value account
 
 
 initialBalance : Parent m -> DRec -> String
@@ -83,8 +91,8 @@ initialBalance model drec =
             )
 
 
-validateBalance : FieldInput -> Parent m -> String -> Maybe DField
-validateBalance action model value =
+validateBalance : FieldInput -> DRec -> String -> Maybe DField
+validateBalance action currency value =
     case action of
         Collect ->
             Nothing
@@ -92,17 +100,17 @@ validateBalance action model value =
         Validate ->
             let
                 decSep =
-                    DRec.get "decimal_separator" model.currency
+                    DRec.get "decimal_separator" currency
                         |> DRec.toString
                         |> Result.withDefault "."
 
                 thoSep =
-                    DRec.get "thousand_separator" model.currency
+                    DRec.get "thousand_separator" currency
                         |> DRec.toString
                         |> Result.withDefault ""
 
                 subRatio =
-                    DRec.get "sub_unit_ratio" model.currency
+                    DRec.get "sub_unit_ratio" currency
                         |> DRec.toInt
                         |> Result.map Basics.toFloat
                         |> Result.withDefault 1.0
@@ -120,3 +128,37 @@ validateBalance action model value =
                             |> Result.toMaybe
                     )
                 |> EMaybe.join
+
+
+validate : DRec -> Meld (Parent m) Error msg -> Task Error (Meld (Parent m) Error msg)
+validate drec meld =
+    let
+        model =
+            Meld.model meld
+
+        fail msg =
+            msg
+                |> EMsg
+                |> Task.fail
+
+        -- make sure all partial input are validated as onBlur might not be always triggered
+        storeDRec =
+            DRec.fieldNames drec
+                |> List.filter
+                    (\fn ->
+                        DRec.fieldBuffer fn drec
+                            |> Maybe.map (\_ -> True)
+                            |> Maybe.withDefault False
+                    )
+                |> List.foldl
+                    (\fn accum ->
+                        DRec.fieldBuffer fn accum
+                            |> Maybe.map (update Validate fn model.currency accum)
+                            |> Maybe.withDefault accum
+                    )
+                    drec
+    in
+    if DRec.isValid storeDRec then
+        Task.succeed meld
+    else
+        fail "Correct account field errors."

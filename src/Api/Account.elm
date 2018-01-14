@@ -1,6 +1,7 @@
 module Api.Account
     exposing
         ( read
+        , save
         )
 
 import Api.Headers exposing (tokenHeader)
@@ -35,6 +36,20 @@ read meld =
             )
 
 
+save : DRec -> Meld Model Error Msg -> Task Error (Meld Model Error Msg)
+save drec meld =
+    Account.validate drec meld
+        |> Task.andThen (patch drec)
+        |> Task.map
+            (\res ->
+                let
+                    taskModel ma =
+                        ma
+                in
+                Meld.withMerge taskModel meld
+            )
+
+
 get : Meld Model Error Msg -> Task Error (List DRec)
 get meld =
     let
@@ -46,5 +61,21 @@ get meld =
         |> HttpBuilder.get
         |> withHeaders (tokenHeader model.token)
         |> withExpect (Http.expectJson <| Json.Decode.list (DRec.decoder Account.init))
+        |> HttpBuilder.toTask
+        |> Task.mapError Meld.EHttp
+
+
+patch : DRec -> Meld Model Error Msg -> Task Error String
+patch drec meld =
+    let
+        model =
+            Meld.model meld
+    in
+    model.apiBaseUrl
+        ++ ("/accounts?aid=eq." ++ (Account.id drec |> Basics.toString))
+        |> HttpBuilder.patch
+        |> withHeaders (tokenHeader model.token)
+        |> withJsonBody (DRec.encoder drec)
+        |> withExpect Http.expectString
         |> HttpBuilder.toTask
         |> Task.mapError Meld.EHttp
