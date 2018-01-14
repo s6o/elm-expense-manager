@@ -32,3 +32,4 @@ type Msg
     | Results Int (Result Error (Meld Model Error Msg))
     | SelectTab String
     | TextInput (Model -> String -> ( Model, Cmd Msg )) Model String
+    | TextBlur (Model -> String -> (Model, Cmd Msg)) Model String

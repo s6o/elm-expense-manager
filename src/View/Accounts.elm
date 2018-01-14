@@ -6,11 +6,9 @@ module View.Accounts
 import Api.Account
 import DRec exposing (DError, DRec)
 import Dict
-import FormatNumber
 import Html exposing (Html, div, text)
 import KeyEvent
-import Manager.Account as Account
-import Manager.Currency as Currency
+import Manager.Account as Account exposing (FieldInput(..))
 import Material.Button as Button
 import Material.Elevation as Elevation
 import Material.Options as Options exposing (css)
@@ -52,7 +50,7 @@ account model baseIndex drec =
                     |> DRec.toString
                     |> Result.withDefault ""
                     |> Textfield.value
-                , TextInput (Account.fieldInput (Account.id drec) "name") model
+                , TextInput (Account.fieldInput Collect (Account.id drec) "name") model
                     |> Options.onInput
                 ]
                 []
@@ -65,25 +63,14 @@ account model baseIndex drec =
                 [ Textfield.label "Initial balance"
                 , Textfield.floatingLabel
                 , css "width" "100%"
-                , DRec.get "initial_balance" drec
-                    |> DRec.toInt
-                    |> Result.withDefault 0
-                    |> (\balance ->
-                            let
-                                amount =
-                                    toFloat balance / (toFloat <| Currency.subUnitRatio model.currency)
-
-                                decs =
-                                    balance % Currency.subUnitRatio model.currency
-                            in
-                            if decs == 0 then
-                                FormatNumber.format (Currency.locale model.currency 0) amount
-                            else
-                                FormatNumber.format (Currency.locale model.currency 2) amount
-                       )
+                , Textfield.error "A numeric value with at max. 2 decimal places"
+                    |> Options.when (not <| DRec.hasValue "initial_balance" drec)
+                , Account.initialBalance model drec
                     |> Textfield.value
-                , TextInput (Account.fieldInput (Account.id drec) "initial_balance") model
+                , TextInput (Account.fieldInput Collect (Account.id drec) "initial_balance") model
                     |> Options.onInput
+                , TextBlur (Account.fieldInput Validate (Account.id drec) "initial_balance") model (Account.initialBalance model drec)
+                    |> Options.onBlur
                 ]
                 []
             ]
@@ -99,7 +86,7 @@ account model baseIndex drec =
                     |> DRec.toString
                     |> Result.withDefault ""
                     |> Textfield.value
-                , TextInput (Account.fieldInput (Account.id drec) "bank_account") model
+                , TextInput (Account.fieldInput Validate (Account.id drec) "bank_account") model
                     |> Options.onInput
                 ]
                 []
@@ -116,7 +103,7 @@ account model baseIndex drec =
                     |> DRec.toString
                     |> Result.withDefault ""
                     |> Textfield.value
-                , TextInput (Account.fieldInput (Account.id drec) "bank_name") model
+                , TextInput (Account.fieldInput Validate (Account.id drec) "bank_name") model
                     |> Options.onInput
                 ]
                 []

@@ -166,6 +166,9 @@ update msg model =
         TextInput updateFn m v ->
             updateFn { m | errors = Nothing } v
 
+        TextBlur updateFn m v ->
+            updateFn { m | errors = Nothing } v
+
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
