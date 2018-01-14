@@ -30,7 +30,7 @@ decoder =
 
 init : DRec
 init =
-    DRec.empty
+    DRec.init
         |> DRec.field "email" DString
         |> DRec.field "pass" DString
 

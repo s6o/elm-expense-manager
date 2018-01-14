@@ -20,7 +20,7 @@ type alias Parent m =
 
 init : DRec
 init =
-    DRec.empty
+    DRec.init
         |> DRec.field "iso_code" DString
         |> DRec.field "sub_unit_ratio" DInt
         |> DRec.field "symbol" DString

@@ -19,7 +19,7 @@ Claims as constructed by PostgREST
 -}
 claims : DRec
 claims =
-    DRec.empty
+    DRec.init
         |> DRec.field "role" DString
         |> DRec.field "uid" DInt
         |> DRec.field "email" DString

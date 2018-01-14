@@ -16,7 +16,7 @@ type alias Parent m =
 
 init : DRec
 init =
-    DRec.empty
+    DRec.init
         |> DRec.field "mid" DInt
         |> DRec.field "email" DString
         |> DRec.field "name" DString
