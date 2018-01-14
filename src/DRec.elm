@@ -15,6 +15,7 @@ module DRec
         , field
         , fieldBuffer
         , fieldError
+        , fieldNames
         , fromArray
         , fromBool
         , fromDRec
@@ -80,7 +81,7 @@ These are for basic types that just wrap `setWith`.
 
 # Query
 
-@docs errorMessages, fieldBuffer, fieldError, get, hasSchema, hasValue, isEmpty, isValid, schema
+@docs errorMessages, fieldBuffer, fieldError, fieldNames, get, hasSchema, hasValue, isEmpty, isValid, schema
 
 
 # Decode
@@ -421,6 +422,7 @@ setWith field toValue value (DRec r) =
                             DRec
                                 { r
                                     | buffers = Dict.remove field r.buffers
+                                    , errors = Dict.remove field r.errors
                                     , store = Dict.insert field dfield r.store
                                 }
                         else
@@ -499,6 +501,13 @@ fieldError : String -> DRec -> Maybe String
 fieldError field (DRec r) =
     Dict.get field r.errors
         |> Maybe.map derrorString
+
+
+{-| Get field names in the order they were defined.
+-}
+fieldNames : DRec -> List String
+fieldNames (DRec r) =
+    r.fields
 
 
 {-| For a valid field defined in schema return a value/type mapping.
