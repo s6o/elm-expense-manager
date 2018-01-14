@@ -26,8 +26,10 @@ module DRec
         , fromString
         , get
         , hasSchema
+        , hasValue
         , init
         , isEmpty
+        , isValid
         , schema
         , setBool
         , setDRec
@@ -78,7 +80,7 @@ These are for basic types that just wrap `setWith`.
 
 # Query
 
-@docs errorMessages, fieldBuffer, fieldError, get, hasSchema, isEmpty, schema
+@docs errorMessages, fieldBuffer, fieldError, get, hasSchema, hasValue, isEmpty, isValid, schema
 
 
 # Decode
@@ -102,7 +104,7 @@ import Json.Decode exposing (Decoder)
 import Json.Encode
 
 
--- BUILD
+-- SCHEMA
 
 
 {-| `DRec` schema types.
@@ -313,7 +315,11 @@ field field dtype (DRec r) =
                         |> DRec
 
 
-{-| Remove all data from `DRec`, schema is not affected.
+
+-- VALUES
+
+
+{-| Remove all data (including input buffers and errors) from `DRec`, schema is not affected.
 -}
 clear : DRec -> DRec
 clear (DRec r) =
@@ -364,9 +370,10 @@ setString field value drec =
 
 {-| Set a value for specified `DRec` field with a custom value conversion/validation.
 
-In case of an error the value is retained in an internal input buffer and an error
-is set for the specified field. For quering the error and input buffer use
-`fieldError` and `fieldBuffer` respectively.
+In case of a conversion/validation error, the value is retained in an internal
+input buffer and an error is set for the specified field.
+
+For quering the error and input buffer use `fieldError` and `fieldBuffer` respectively.
 
     update : Msg -> Model -> (Model, Cmd Msg)
     update msg model =
@@ -376,7 +383,7 @@ is set for the specified field. For quering the error and input buffer use
             )
 
         Token mstr ->
-            ( { model | user = DRec.setWith "token" (DRec.fromMaybe DRec.fromString) mstr model.user}
+            ( { model | user = DRec.setWith "token" (DRec.fromMaybe DRec.fromString >> Just) mstr model.user}
             , Cmd.none
             )
 
@@ -386,7 +393,14 @@ setWith field toValue value (DRec r) =
     let
         setError de =
             { r
-                | buffers = Dict.insert field (Basics.toString value) r.buffers
+                | buffers =
+                    Dict.insert
+                        field
+                        (Basics.toString value
+                            -- Basics.toString adds quotes which we don't want
+                            |> (String.dropLeft 1 >> String.dropRight 1)
+                        )
+                        r.buffers
                 , errors = Dict.insert field de r.errors
             }
     in
@@ -519,11 +533,36 @@ hasSchema (DRec r) =
     not <| Dict.isEmpty r.schema
 
 
+{-| Check if specified field has a valid value.
+A valid value is considered to be present if no input buffer for the field is
+set and the field itself actually contains a valid value.
+-}
+hasValue : String -> DRec -> Bool
+hasValue field drec =
+    fieldBuffer field drec
+        |> Maybe.map (\_ -> False)
+        |> Maybe.withDefault
+            (get field drec
+                |> Result.map (\_ -> True)
+                |> Result.withDefault False
+            )
+
+
 {-| Check is specified `DRec` contains data.
 -}
 isEmpty : DRec -> Bool
 isEmpty (DRec r) =
     Dict.isEmpty r.store
+
+
+{-| Check if a record is valid: no errors and `hasValue` returns 'True' for every field.
+-}
+isValid : DRec -> Bool
+isValid (DRec r) =
+    r.fields
+        |> List.foldl
+            (\fname accum -> hasValue fname (DRec r) && accum)
+            (Dict.isEmpty r.errors)
 
 
 {-| Query `DRec` schema.
