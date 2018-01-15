@@ -41,10 +41,10 @@ save accountId meld =
     Account.validate accountId meld
         |> Task.andThen (patch accountId)
         |> Task.map
-            (\meld ->
+            (\pmeld ->
                 let
                     model =
-                        Meld.model meld
+                        Meld.model pmeld
 
                     taskModel ma =
                         { ma
@@ -52,7 +52,7 @@ save accountId meld =
                             , messages = Just "Saved."
                         }
                 in
-                Meld.withMerge taskModel meld
+                Meld.withMerge taskModel pmeld
             )
 
 
