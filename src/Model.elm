@@ -19,6 +19,7 @@ type alias Model =
     { actions : Int
     , apiBaseUrl : String
     , errors : Maybe String
+    , messages : Maybe String
     , loading : Int
     , mdl : Material.Model
     , route : Route

@@ -32,6 +32,7 @@ init flags =
             { actions = 0
             , apiBaseUrl = "/api"
             , errors = Nothing
+            , messages = Nothing
             , loading = 0
             , mdl = Material.model
             , route = Route.Empty
@@ -119,6 +120,7 @@ update msg model =
                             Api.Response.errorMessage meldError
                                 |> Maybe.withDefault (Meld.errorMessage meldError)
                                 |> Just
+                        , messages = Nothing
                       }
                     , case
                         Api.Response.isUnauthorized meldError
@@ -148,7 +150,10 @@ update msg model =
                         _ =
                             Debug.log "Action Error" meldError
                     in
-                    ( { model | errors = Just <| Meld.errorMessage meldError }
+                    ( { model
+                        | errors = Just <| Meld.errorMessage meldError
+                        , messages = Nothing
+                      }
                     , Cmd.none
                     )
 
@@ -157,17 +162,29 @@ update msg model =
                 |> List.filter (\t -> fragment == Route.toFragment t.route)
                 |> List.head
                 |> Maybe.map
-                    (\t -> ( { model | errors = Nothing, route = t.route }, Cmd.none ))
+                    (\t ->
+                        ( { model
+                            | errors = Nothing
+                            , messages = Nothing
+                            , route = t.route
+                          }
+                        , Cmd.none
+                        )
+                    )
                 |> Maybe.withDefault
-                    ( { model | errors = Nothing, route = Route.defaultRoute model.token }
+                    ( { model
+                        | errors = Nothing
+                        , messages = Nothing
+                        , route = Route.defaultRoute model.token
+                      }
                     , Navigation.modifyUrl (Route.defaultRoute model.token |> Route.toFragment)
                     )
 
         TextInput updateFn m v ->
-            updateFn { m | errors = Nothing } v
+            updateFn { m | errors = Nothing, messages = Nothing } v
 
         TextBlur updateFn m v ->
-            updateFn { m | errors = Nothing } v
+            updateFn m v
 
 
 subscriptions : Model -> Sub Msg

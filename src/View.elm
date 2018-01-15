@@ -85,14 +85,34 @@ routeLayout model =
         ([ Options.div
             [ Elevation.e4
             , css "height" "30px"
-            , css "color" "red"
-            , css "padding-top" "8px"
+            , css "padding" "8px 0px 0px 5px"
             , css "margin-bottom" "10px"
             ]
-            [ model.errors
-                |> Maybe.withDefault ""
-                |> text
-            ]
+            ((model.errors
+                |> Maybe.map
+                    (\emsg ->
+                        [ Options.div
+                            [ css "color" "rgb(199,0,88)"
+                            ]
+                            [ text emsg
+                            ]
+                        ]
+                    )
+                |> Maybe.withDefault []
+             )
+                ++ (model.messages
+                        |> Maybe.map
+                            (\msg ->
+                                [ Options.div
+                                    [ css "color" "rgb(0,169,91)"
+                                    ]
+                                    [ text msg
+                                    ]
+                                ]
+                            )
+                        |> Maybe.withDefault []
+                   )
+            )
          ]
             ++ (case model.route of
                     Empty ->
