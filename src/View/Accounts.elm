@@ -46,9 +46,9 @@ account model baseIndex drec =
                 [ Textfield.label "Name"
                 , Textfield.floatingLabel
                 , css "width" "100%"
-                , DRec.get "name" drec
-                    |> DRec.toString
-                    |> Result.withDefault ""
+                , Textfield.error "An non-empty account name is required"
+                    |> Options.when (String.length (Account.name drec) <= 0)
+                , Account.name drec
                     |> Textfield.value
                 , TextInput (Account.fieldInput Validate (Account.id drec) "name") model
                     |> Options.onInput

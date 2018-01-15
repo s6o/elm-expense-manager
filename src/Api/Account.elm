@@ -41,7 +41,19 @@ save accountId meld =
     Account.validate accountId meld
         |> Task.andThen (patch accountId)
         |> Task.map
-            (\_ -> Meld.withMerge identity meld)
+            (\meld ->
+                let
+                    model =
+                        Meld.model meld
+
+                    taskModel ma =
+                        { ma
+                            | accounts = model.accounts
+                            , messages = Just "Saved."
+                        }
+                in
+                Meld.withMerge taskModel meld
+            )
 
 
 get : Meld Model Error Msg -> Task Error (List DRec)
@@ -59,7 +71,7 @@ get meld =
         |> Task.mapError Meld.EHttp
 
 
-patch : Int -> Meld Model Error Msg -> Task Error String
+patch : Int -> Meld Model Error Msg -> Task Error (Meld Model Error Msg)
 patch accountId meld =
     let
         model =
@@ -81,5 +93,6 @@ patch accountId meld =
                     |> withExpect Http.expectString
                     |> HttpBuilder.toTask
                     |> Task.mapError Meld.EHttp
+                    |> Task.map (\_ -> meld)
             )
         |> Maybe.withDefault (fail <| "Incorrect account id: " ++ Basics.toString accountId)

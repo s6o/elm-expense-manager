@@ -5,6 +5,7 @@ module Manager.Account
         , id
         , init
         , initialBalance
+        , name
         , validate
         )
 
@@ -46,6 +47,13 @@ id drec =
     DRec.get "aid" drec
         |> DRec.toInt
         |> Result.withDefault 0
+
+
+name : DRec -> String
+name drec =
+    DRec.get "name" drec
+        |> DRec.toString
+        |> Result.withDefault ""
 
 
 fieldInput : FieldInput -> Int -> String -> Parent m -> String -> ( Parent m, Cmd msg )
@@ -145,6 +153,9 @@ validate accountId meld =
         |> Maybe.map
             (\drec ->
                 let
+                    nameLen =
+                        name drec |> String.length
+
                     -- make sure all partial input are validated as onBlur might not be always triggered
                     storeDRec =
                         DRec.fieldNames drec
@@ -162,7 +173,7 @@ validate accountId meld =
                                 )
                                 drec
                 in
-                if DRec.isValid storeDRec then
+                if DRec.isValid storeDRec && nameLen > 0 then
                     Meld.init { model | accounts = Dict.insert (id drec) storeDRec model.accounts }
                         |> Task.succeed
                 else
