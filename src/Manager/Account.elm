@@ -130,8 +130,8 @@ validateBalance action currency value =
                 |> EMaybe.join
 
 
-validate : DRec -> Meld (Parent m) Error msg -> Task Error (Meld (Parent m) Error msg)
-validate drec meld =
+validate : Int -> Meld (Parent m) Error msg -> Task Error (Meld (Parent m) Error msg)
+validate accountId meld =
     let
         model =
             Meld.model meld
@@ -140,25 +140,32 @@ validate drec meld =
             msg
                 |> EMsg
                 |> Task.fail
-
-        -- make sure all partial input are validated as onBlur might not be always triggered
-        storeDRec =
-            DRec.fieldNames drec
-                |> List.filter
-                    (\fn ->
-                        DRec.fieldBuffer fn drec
-                            |> Maybe.map (\_ -> True)
-                            |> Maybe.withDefault False
-                    )
-                |> List.foldl
-                    (\fn accum ->
-                        DRec.fieldBuffer fn accum
-                            |> Maybe.map (update Validate fn model.currency accum)
-                            |> Maybe.withDefault accum
-                    )
-                    drec
     in
-    if DRec.isValid storeDRec then
-        Task.succeed meld
-    else
-        fail "Correct account field errors."
+    Dict.get accountId model.accounts
+        |> Maybe.map
+            (\drec ->
+                let
+                    -- make sure all partial input are validated as onBlur might not be always triggered
+                    storeDRec =
+                        DRec.fieldNames drec
+                            |> List.filter
+                                (\fn ->
+                                    DRec.fieldBuffer fn drec
+                                        |> Maybe.map (\_ -> True)
+                                        |> Maybe.withDefault False
+                                )
+                            |> List.foldl
+                                (\fn accum ->
+                                    DRec.fieldBuffer fn accum
+                                        |> Maybe.map (update Validate fn model.currency accum)
+                                        |> Maybe.withDefault accum
+                                )
+                                drec
+                in
+                if DRec.isValid storeDRec then
+                    Meld.init { model | accounts = Dict.insert (id drec) storeDRec model.accounts }
+                        |> Task.succeed
+                else
+                    fail "Correct account field errors."
+            )
+        |> Maybe.withDefault (fail <| "Incorrect account id: " ++ Basics.toString accountId)

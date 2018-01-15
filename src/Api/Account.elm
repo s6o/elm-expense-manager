@@ -12,7 +12,7 @@ import HttpBuilder exposing (..)
 import Json.Decode
 import Manager.Account as Account
 import Manager.User as User
-import Meld exposing (Error, Meld)
+import Meld exposing (Error(..), Meld)
 import Messages exposing (Msg)
 import Model exposing (Model)
 import Task exposing (Task)
@@ -36,18 +36,12 @@ read meld =
             )
 
 
-save : DRec -> Meld Model Error Msg -> Task Error (Meld Model Error Msg)
-save drec meld =
-    Account.validate drec meld
-        |> Task.andThen (patch drec)
+save : Int -> Meld Model Error Msg -> Task Error (Meld Model Error Msg)
+save accountId meld =
+    Account.validate accountId meld
+        |> Task.andThen (patch accountId)
         |> Task.map
-            (\res ->
-                let
-                    taskModel ma =
-                        ma
-                in
-                Meld.withMerge taskModel meld
-            )
+            (\_ -> Meld.withMerge identity meld)
 
 
 get : Meld Model Error Msg -> Task Error (List DRec)
@@ -65,17 +59,27 @@ get meld =
         |> Task.mapError Meld.EHttp
 
 
-patch : DRec -> Meld Model Error Msg -> Task Error String
-patch drec meld =
+patch : Int -> Meld Model Error Msg -> Task Error String
+patch accountId meld =
     let
         model =
             Meld.model meld
+
+        fail msg =
+            msg
+                |> EMsg
+                |> Task.fail
     in
-    model.apiBaseUrl
-        ++ ("/accounts?aid=eq." ++ (Account.id drec |> Basics.toString))
-        |> HttpBuilder.patch
-        |> withHeaders (tokenHeader model.token)
-        |> withJsonBody (DRec.encoder drec)
-        |> withExpect Http.expectString
-        |> HttpBuilder.toTask
-        |> Task.mapError Meld.EHttp
+    Dict.get accountId model.accounts
+        |> Maybe.map
+            (\drec ->
+                model.apiBaseUrl
+                    ++ ("/accounts?aid=eq." ++ (accountId |> Basics.toString))
+                    |> HttpBuilder.patch
+                    |> withHeaders (tokenHeader model.token)
+                    |> withJsonBody (DRec.encoder drec)
+                    |> withExpect Http.expectString
+                    |> HttpBuilder.toTask
+                    |> Task.mapError Meld.EHttp
+            )
+        |> Maybe.withDefault (fail <| "Incorrect account id: " ++ Basics.toString accountId)

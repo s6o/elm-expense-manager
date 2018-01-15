@@ -52,7 +52,7 @@ account model baseIndex drec =
                     |> Textfield.value
                 , TextInput (Account.fieldInput Validate (Account.id drec) "name") model
                     |> Options.onInput
-                , KeyEvent.onEnter <| Request [ Api.Account.save drec ]
+                , KeyEvent.onEnter <| Request [ Api.Account.save (Account.id drec) ]
                 ]
                 []
             ]
@@ -72,7 +72,7 @@ account model baseIndex drec =
                     |> Options.onInput
                 , TextBlur (Account.fieldInput Validate (Account.id drec) "initial_balance") model (Account.initialBalance model drec)
                     |> Options.onBlur
-                , KeyEvent.onEnter <| Request [ Api.Account.save drec ]
+                , KeyEvent.onEnter <| Request [ Api.Account.save (Account.id drec) ]
                 ]
                 []
             ]
@@ -90,7 +90,7 @@ account model baseIndex drec =
                     |> Textfield.value
                 , TextInput (Account.fieldInput Validate (Account.id drec) "bank_account") model
                     |> Options.onInput
-                , KeyEvent.onEnter <| Request [ Api.Account.save drec ]
+                , KeyEvent.onEnter <| Request [ Api.Account.save (Account.id drec) ]
                 ]
                 []
             ]
@@ -108,7 +108,7 @@ account model baseIndex drec =
                     |> Textfield.value
                 , TextInput (Account.fieldInput Validate (Account.id drec) "bank_name") model
                     |> Options.onInput
-                , KeyEvent.onEnter <| Request [ Api.Account.save drec ]
+                , KeyEvent.onEnter <| Request [ Api.Account.save (Account.id drec) ]
                 ]
                 []
             ]
@@ -140,7 +140,7 @@ account model baseIndex drec =
                     [ Button.colored
                     , Button.raised
                     , Button.ripple
-                    , Options.onClick <| Request [ Api.Account.save drec ]
+                    , Options.onClick <| Request [ Api.Account.save (Account.id drec) ]
                     ]
                     [ text "Save" ]
                 ]
