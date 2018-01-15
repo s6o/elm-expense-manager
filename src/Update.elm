@@ -12,7 +12,7 @@ import Api.Init exposing (initialRequests)
 import Api.Response
 import Dict
 import Manager.Auth as MAuth
-import Manager.Currency as MCurrency
+import Manager.Currency as Currency
 import Manager.Jwt as MJwt
 import Manager.User as MUser
 import Material
@@ -41,7 +41,7 @@ init flags =
             , auth = MAuth.init
             , claims = MJwt.init flags.token
             , user = MUser.init
-            , currency = MCurrency.init
+            , currency = Currency.init
             , accounts = Dict.empty
             , categories = Dict.empty
             }

@@ -4,7 +4,7 @@ import Api.Currency
 import DRec
 import Html exposing (Html, div, text)
 import KeyEvent
-import Manager.Currency as MCurrency
+import Manager.Currency as Currency
 import Material.Button as Button
 import Material.Elevation as Elevation
 import Material.Options as Options exposing (css)
@@ -15,17 +15,6 @@ import Model exposing (Model)
 
 view : Model -> Html Msg
 view model =
-    let
-        isoCode =
-            DRec.get "iso_code" model.currency
-                |> DRec.toString
-                |> Result.withDefault ""
-
-        subUnitRatio =
-            DRec.get "sub_unit_ratio" model.currency
-                |> DRec.toInt
-                |> Result.withDefault 0
-    in
     Options.div
         [ Elevation.e4
         , css "padding" "5px"
@@ -40,11 +29,11 @@ view model =
                 , Textfield.floatingLabel
                 , Textfield.maxlength 3
                 , Textfield.error "Required, 3 characters"
-                    |> Options.when (String.length isoCode /= 3)
+                    |> Options.when (String.length (Currency.isoCode model.currency) /= 3)
                 , css "width" "100%"
-                , isoCode
+                , Currency.isoCode model.currency
                     |> Textfield.value
-                , TextInput (MCurrency.fieldInput "iso_code") model
+                , TextInput (Currency.fieldInput "iso_code") model
                     |> Options.onInput
                 , KeyEvent.onEnter <| Request [ Api.Currency.save ]
                 ]
@@ -58,12 +47,12 @@ view model =
                 [ Textfield.label "Sub Unit Ratio"
                 , Textfield.floatingLabel
                 , Textfield.error "Required, an integer value > 0"
-                    |> Options.when (subUnitRatio <= 0)
+                    |> Options.when (Currency.subUnitRatio model.currency <= 0)
                 , css "width" "100%"
-                , subUnitRatio
+                , Currency.subUnitRatio model.currency
                     |> Basics.toString
                     |> Textfield.value
-                , TextInput (MCurrency.fieldInput "sub_unit_ratio") model
+                , TextInput (Currency.fieldInput "sub_unit_ratio") model
                     |> Options.onInput
                 , KeyEvent.onEnter <| Request [ Api.Currency.save ]
                 ]
@@ -82,7 +71,7 @@ view model =
                     |> DRec.toString
                     |> Result.withDefault ""
                     |> Textfield.value
-                , TextInput (MCurrency.fieldInput "symbol") model
+                , TextInput (Currency.fieldInput "symbol") model
                     |> Options.onInput
                 , KeyEvent.onEnter <| Request [ Api.Currency.save ]
                 ]
@@ -101,7 +90,7 @@ view model =
                     |> DRec.toString
                     |> Result.withDefault ""
                     |> Textfield.value
-                , TextInput (MCurrency.fieldInput "decimal_separator") model
+                , TextInput (Currency.fieldInput "decimal_separator") model
                     |> Options.onInput
                 , KeyEvent.onEnter <| Request [ Api.Currency.save ]
                 ]
@@ -120,7 +109,7 @@ view model =
                     |> DRec.toString
                     |> Result.withDefault ""
                     |> Textfield.value
-                , TextInput (MCurrency.fieldInput "thousand_separator") model
+                , TextInput (Currency.fieldInput "thousand_separator") model
                     |> Options.onInput
                 , KeyEvent.onEnter <| Request [ Api.Currency.save ]
                 ]

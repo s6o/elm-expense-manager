@@ -8,7 +8,7 @@ import Api.Headers exposing (objectHeader, tokenHeader)
 import DRec exposing (DRec)
 import Http
 import HttpBuilder exposing (..)
-import Manager.Currency as MCurrency
+import Manager.Currency as Currency
 import Meld exposing (Error, Meld)
 import Messages exposing (Msg)
 import Model exposing (Model)
@@ -30,15 +30,21 @@ read meld =
 
 save : Meld Model Error Msg -> Task Error (Meld Model Error Msg)
 save meld =
-    MCurrency.validate meld
+    Currency.validate meld
         |> Task.andThen patch
         |> Task.map
-            (\res ->
+            (\pmeld ->
                 let
+                    model =
+                        Meld.model pmeld
+
                     taskModel ma =
-                        ma
+                        { ma
+                            | messages = Just "Saved."
+                            , currency = model.currency
+                        }
                 in
-                Meld.withMerge taskModel meld
+                Meld.withMerge taskModel pmeld
             )
 
 
@@ -57,22 +63,18 @@ get meld =
         |> Task.mapError Meld.EHttp
 
 
-patch : Meld Model Error Msg -> Task Error String
+patch : Meld Model Error Msg -> Task Error (Meld Model Error Msg)
 patch meld =
     let
         model =
             Meld.model meld
-
-        cid =
-            DRec.get "iso_code" model.currency
-                |> DRec.toString
-                |> Result.withDefault ""
     in
     model.apiBaseUrl
-        ++ ("/currency?iso_code=eq." ++ cid)
+        ++ ("/currency?iso_code=eq." ++ Currency.isoCode model.currency)
         |> HttpBuilder.patch
         |> withHeaders (tokenHeader model.token)
         |> withJsonBody (DRec.encoder model.currency)
         |> withExpect Http.expectString
         |> HttpBuilder.toTask
         |> Task.mapError Meld.EHttp
+        |> Task.map (\_ -> meld)

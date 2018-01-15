@@ -2,6 +2,7 @@ module Manager.Currency
     exposing
         ( fieldInput
         , init
+        , isoCode
         , locale
         , subUnitRatio
         , validate
@@ -26,6 +27,20 @@ init =
         |> DRec.field "symbol" DString
         |> DRec.field "decimal_separator" DString
         |> DRec.field "thousand_separator" DString
+
+
+isoCode : DRec -> String
+isoCode drec =
+    DRec.get "iso_code" drec
+        |> DRec.toString
+        |> Result.withDefault ""
+
+
+subUnitRatio : DRec -> Int
+subUnitRatio drec =
+    DRec.get "sub_unit_ratio" drec
+        |> DRec.toInt
+        |> Result.withDefault 1
 
 
 fieldInput : String -> Parent m -> String -> ( Parent m, Cmd msg )
@@ -61,13 +76,6 @@ locale drec decPlaces =
     , negativePrefix = "-"
     , negativeSuffix = ""
     }
-
-
-subUnitRatio : DRec -> Int
-subUnitRatio drec =
-    DRec.get "sub_unit_ratio" drec
-        |> DRec.toInt
-        |> Result.withDefault 1
 
 
 validate : Meld (Parent m) Error msg -> Task Error (Meld (Parent m) Error msg)
