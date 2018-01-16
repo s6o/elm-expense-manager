@@ -11,9 +11,9 @@ import Api.Auth
 import Api.Init exposing (initialRequests)
 import Api.Response
 import Dict
-import Manager.Auth as MAuth
+import Manager.Auth as Auth
 import Manager.Currency as Currency
-import Manager.Jwt as MJwt
+import Manager.Jwt as Jwt
 import Manager.User as MUser
 import Material
 import Material.Layout as Layout
@@ -38,8 +38,8 @@ init flags =
             , route = Route.Empty
             , tabs = initTabs
             , token = flags.token
-            , auth = MAuth.init
-            , claims = MJwt.init flags.token
+            , auth = Auth.init
+            , claims = Jwt.init flags.token
             , user = MUser.init
             , currency = Currency.init
             , accounts = Dict.empty

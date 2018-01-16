@@ -1,30 +1,30 @@
 module Manager.User
     exposing
-        ( init
+        ( User(..)
+        , init
         , uid
         )
 
 import DRec exposing (DError, DRec, DType(..))
+import Manager.Jwt exposing (Jwt)
 
 
-type alias Parent m =
-    { m
-        | claims : DRec
-        , user : DRec
-    }
+type User
+    = User DRec
 
 
-init : DRec
+init : User
 init =
     DRec.init
         |> DRec.field "mid" DInt
         |> DRec.field "email" DString
         |> DRec.field "name" DString
         |> DRec.field "lang" DString
+        |> User
 
 
-uid : Parent m -> Int
-uid model =
-    DRec.get "uid" model.claims
+uid : User -> Int
+uid (User drec) =
+    DRec.get "uid" drec
         |> DRec.toInt
         |> Result.withDefault 0

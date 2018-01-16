@@ -63,7 +63,7 @@ get meld =
             Meld.model meld
     in
     model.apiBaseUrl
-        ++ ("/accounts?mgr_id=eq." ++ (Basics.toString <| User.uid model))
+        ++ ("/accounts?mgr_id=eq." ++ (Basics.toString <| User.uid model.user))
         |> HttpBuilder.get
         |> withHeaders (tokenHeader model.token)
         |> withExpect (Http.expectJson <| Json.Decode.list (DRec.decoder Account.init))

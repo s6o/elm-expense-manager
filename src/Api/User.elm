@@ -7,7 +7,8 @@ import Api.Headers exposing (objectHeader, tokenHeader)
 import DRec exposing (DRec)
 import Http
 import HttpBuilder exposing (..)
-import Manager.User as User
+import Json.Decode
+import Manager.User as User exposing (User(..))
 import Meld exposing (Error, Meld)
 import Messages exposing (Msg)
 import Model exposing (Model)
@@ -18,25 +19,28 @@ read : Meld Model Error Msg -> Task Error (Meld Model Error Msg)
 read meld =
     get meld
         |> Task.map
-            (\drec ->
+            (\u ->
                 let
                     taskModel ma =
-                        { ma | user = drec }
+                        { ma | user = u }
                 in
                 Meld.withMerge taskModel meld
             )
 
 
-get : Meld Model Error Msg -> Task Error DRec
+get : Meld Model Error Msg -> Task Error User
 get meld =
     let
         model =
             Meld.model meld
+
+        (User drec) =
+            model.user
     in
     model.apiBaseUrl
-        ++ ("/managers?mid=eq." ++ (Basics.toString <| User.uid model))
+        ++ ("/managers?mid=eq." ++ (Basics.toString <| User.uid model.user))
         |> HttpBuilder.get
         |> withHeaders (objectHeader ++ tokenHeader model.token)
-        |> withExpect (Http.expectJson (DRec.decoder model.user))
+        |> withExpect (Http.expectJson (DRec.decoder drec |> Json.Decode.map User))
         |> HttpBuilder.toTask
         |> Task.mapError Meld.EHttp

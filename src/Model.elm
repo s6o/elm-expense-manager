@@ -7,7 +7,10 @@ module Model
 import DRec exposing (DError, DRec)
 import Dict exposing (Dict)
 import Manager.Auth exposing (Auth)
+import Manager.Category exposing (Category)
 import Manager.Currency exposing (Currency)
+import Manager.Jwt exposing (Jwt)
+import Manager.User exposing (User)
 import Material
 import Route exposing (Route, Tab)
 
@@ -28,9 +31,9 @@ type alias Model =
     , tabs : Dict String Tab
     , token : Maybe String
     , auth : Auth
-    , claims : DRec
-    , user : DRec
+    , claims : Jwt
+    , user : User
     , currency : Currency
     , accounts : Dict Int DRec
-    , categories : Dict String (List DRec)
+    , categories : Dict String (List Category)
     }

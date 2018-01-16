@@ -1,6 +1,7 @@
 module Manager.Jwt
     exposing
-        ( init
+        ( Jwt(..)
+        , init
         )
 
 {-| Check JWT token payload/claims and extract them into a DRec if present.
@@ -14,27 +15,35 @@ import Base64
 import DRec exposing (DError, DRec, DType(..))
 
 
+type Jwt
+    = Jwt DRec
+
+
 {-| @private
 Claims as constructed by PostgREST
 -}
-claims : DRec
+claims : Jwt
 claims =
     DRec.init
         |> DRec.field "role" DString
         |> DRec.field "uid" DInt
         |> DRec.field "email" DString
         |> DRec.field "exp" DInt
+        |> Jwt
 
 
 {-| Initialize a `DRec` of JWT claims.
 In case of an empty token an empty `DRec` is returned.
 -}
-init : Maybe String -> DRec
+init : Maybe String -> Jwt
 init mtoken =
     mtoken
         |> Maybe.map
             (\t ->
                 let
+                    (Jwt drec) =
+                        claims
+
                     json =
                         case getTokenBody t of
                             Err msg ->
@@ -44,7 +53,8 @@ init mtoken =
                                 Base64.decode body
                                     |> Result.withDefault "{}"
                 in
-                DRec.decodeString claims json
+                DRec.decodeString drec json
+                    |> Result.map Jwt
                     |> Result.withDefault claims
             )
         |> Maybe.withDefault claims

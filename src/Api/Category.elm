@@ -9,7 +9,7 @@ import Dict
 import Http
 import HttpBuilder exposing (..)
 import Json.Decode
-import Manager.Category as Category
+import Manager.Category as Category exposing (Category(..))
 import Manager.User as User
 import Meld exposing (Error, Meld)
 import Messages exposing (Msg)
@@ -35,40 +35,39 @@ read meld =
             )
 
 
-toTree : DRec -> List ( String, List DRec ) -> List ( String, List DRec )
-toTree drec subs =
+toTree : Category -> List ( String, List Category ) -> List ( String, List Category )
+toTree (Category drec) subs =
     case subs of
         [] ->
-            ( DRec.get "parent_path" drec
-                |> DRec.toString
-                |> Result.withDefault ""
-            , [ drec ]
+            ( Category.parentPath (Category drec)
+            , [ Category drec ]
             )
                 :: subs
 
         ( spath, slist ) :: rest ->
             let
                 cpath =
-                    DRec.get "parent_path" drec
-                        |> DRec.toString
-                        |> Result.withDefault ""
+                    Category.parentPath (Category drec)
             in
             if cpath == spath then
-                ( cpath, drec :: slist ) :: rest
+                ( cpath, Category drec :: slist ) :: rest
             else
-                ( cpath, drec :: [] ) :: (( spath, slist ) :: rest)
+                ( cpath, Category drec :: [] ) :: (( spath, slist ) :: rest)
 
 
-get : Meld Model Error Msg -> Task Error (List DRec)
+get : Meld Model Error Msg -> Task Error (List Category)
 get meld =
     let
         model =
             Meld.model meld
+
+        (Category drec) =
+            Category.init
     in
     model.apiBaseUrl
-        ++ ("/categories?mgr_id=eq." ++ (Basics.toString <| User.uid model) ++ "&order=parent_path.asc")
+        ++ ("/categories?mgr_id=eq." ++ (Basics.toString <| User.uid model.user) ++ "&order=parent_path.asc")
         |> HttpBuilder.get
         |> withHeaders (tokenHeader model.token)
-        |> withExpect (Http.expectJson <| Json.Decode.list (DRec.decoder Category.init))
+        |> withExpect (Http.expectJson <| Json.Decode.list (DRec.decoder drec |> Json.Decode.map Category))
         |> HttpBuilder.toTask
         |> Task.mapError Meld.EHttp
