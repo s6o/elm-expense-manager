@@ -1,9 +1,12 @@
 module Manager.Auth
     exposing
-        ( Token
+        ( Auth(..)
+        , Token
         , decoder
+        , email
         , fieldInput
         , init
+        , pass
         , validate
         )
 
@@ -15,7 +18,11 @@ import Task exposing (Task)
 
 
 type alias Parent m =
-    { m | auth : DRec }
+    { m | auth : Auth }
+
+
+type Auth
+    = Auth DRec
 
 
 type alias Token =
@@ -28,16 +35,35 @@ decoder =
         |: field "token" Json.Decode.string
 
 
-init : DRec
+init : Auth
 init =
     DRec.init
         |> DRec.field "email" DString
         |> DRec.field "pass" DString
+        |> Auth
+
+
+email : Auth -> String
+email (Auth drec) =
+    DRec.get "email" drec
+        |> DRec.toString
+        |> Result.withDefault ""
+
+
+pass : Auth -> String
+pass (Auth drec) =
+    DRec.get "pass" drec
+        |> DRec.toString
+        |> Result.withDefault ""
 
 
 fieldInput : String -> Parent m -> String -> ( Parent m, Cmd msg )
 fieldInput field model value =
-    ( { model | auth = DRec.setString field value model.auth }
+    let
+        (Auth drec) =
+            model.auth
+    in
+    ( { model | auth = DRec.setString field value drec |> Auth }
     , Cmd.none
     )
 
@@ -48,26 +74,17 @@ validate meld =
         model =
             Meld.model meld
 
+        (Auth drec) =
+            model.auth
+
         credsFail =
             "Authentication credentials not set."
                 |> EMsg
                 |> Task.fail
     in
-    if DRec.isEmpty model.auth then
+    if DRec.isEmpty drec then
         credsFail
+    else if String.length (email model.auth) > 0 && String.length (pass model.auth) > 0 then
+        Task.succeed meld
     else
-        let
-            email =
-                DRec.get "email" model.auth
-                    |> DRec.toString
-                    |> Result.withDefault ""
-
-            pass =
-                DRec.get "pass" model.auth
-                    |> DRec.toString
-                    |> Result.withDefault ""
-        in
-        if String.length email > 0 && String.length pass > 0 then
-            Task.succeed meld
-        else
-            credsFail
+        credsFail

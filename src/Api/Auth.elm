@@ -9,7 +9,7 @@ import Api.Init exposing (initialRequests)
 import DRec
 import Http
 import HttpBuilder exposing (..)
-import Manager.Auth as MAuth exposing (Token)
+import Manager.Auth as Auth exposing (Auth(..), Token)
 import Manager.Jwt as MJwt
 import Meld exposing (Error, Meld)
 import Messages exposing (Msg(..))
@@ -21,16 +21,20 @@ import Task exposing (Task)
 
 login : Meld Model Error Msg -> Task Error (Meld Model Error Msg)
 login meld =
-    MAuth.validate meld
+    Auth.validate meld
         |> Task.andThen postCredentials
         |> Task.map
             (\result ->
                 let
                     taskModel ma =
+                        let
+                            (Auth drec) =
+                                ma.auth
+                        in
                         { ma
                             | route = Route.Transactions
                             , token = Just result.token
-                            , auth = DRec.clear ma.auth
+                            , auth = DRec.clear drec |> Auth
                             , claims = MJwt.init (Just result.token)
                         }
 
@@ -51,10 +55,14 @@ logout meld =
             (\_ ->
                 let
                     taskModel ma =
+                        let
+                            (Auth drec) =
+                                ma.auth
+                        in
                         { ma
                             | route = Route.Login
                             , token = Nothing
-                            , auth = DRec.clear ma.auth
+                            , auth = DRec.clear drec |> Auth
                             , claims = DRec.clear ma.claims
                         }
 
@@ -71,21 +79,20 @@ postCredentials meld =
     let
         model =
             Meld.model meld
+
+        (Auth drec) =
+            model.auth
     in
-    if DRec.isEmpty model.auth then
-        "Model's `authManager` is not set."
+    if DRec.isEmpty drec then
+        "Model's `auth` member is not set."
             |> Meld.EMsg
             |> Task.fail
     else
-        let
-            payload =
-                DRec.encoder model.auth
-        in
         model.apiBaseUrl
             ++ "/rpc/login"
             |> HttpBuilder.post
             |> withHeaders objectHeader
-            |> withJsonBody payload
-            |> withExpect (Http.expectJson MAuth.decoder)
+            |> withJsonBody (DRec.encoder drec)
+            |> withExpect (Http.expectJson Auth.decoder)
             |> HttpBuilder.toTask
             |> Task.mapError Meld.EHttp

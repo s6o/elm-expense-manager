@@ -4,10 +4,9 @@ module View.Login
         )
 
 import Api.Auth
-import DRec
 import Html exposing (Html, div, text)
 import KeyEvent
-import Manager.Auth as MAuth
+import Manager.Auth as Auth
 import Material.Button as Button
 import Material.Elevation as Elevation
 import Material.Options as Options exposing (css)
@@ -32,11 +31,9 @@ view model =
                 , Textfield.floatingLabel
                 , Textfield.email
                 , css "width" "100%"
-                , DRec.get "email" model.auth
-                    |> DRec.toString
-                    |> Result.withDefault ""
+                , Auth.email model.auth
                     |> Textfield.value
-                , TextInput (MAuth.fieldInput "email") model
+                , TextInput (Auth.fieldInput "email") model
                     |> Options.onInput
                 , KeyEvent.onEnter <| Request [ Api.Auth.login ]
                 ]
@@ -51,11 +48,9 @@ view model =
                 , Textfield.floatingLabel
                 , Textfield.password
                 , css "width" "100%"
-                , DRec.get "pass" model.auth
-                    |> DRec.toString
-                    |> Result.withDefault ""
+                , Auth.pass model.auth
                     |> Textfield.value
-                , TextInput (MAuth.fieldInput "pass") model
+                , TextInput (Auth.fieldInput "pass") model
                     |> Options.onInput
                 , KeyEvent.onEnter <| Request [ Api.Auth.login ]
                 ]
