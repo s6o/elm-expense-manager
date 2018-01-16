@@ -1,6 +1,9 @@
 module Manager.Account
     exposing
-        ( FieldInput(..)
+        ( Account(..)
+        , FieldInput(..)
+        , bankAccount
+        , bankName
         , fieldInput
         , id
         , init
@@ -12,7 +15,7 @@ module Manager.Account
 import DRec exposing (DError, DField, DRec, DType(..))
 import Dict exposing (Dict)
 import FormatNumber
-import Manager.Currency as Currency exposing (Currency)
+import Manager.Currency as Currency exposing (Currency(..))
 import Maybe.Extra as EMaybe
 import Meld exposing (Error(..), Meld)
 import Regex
@@ -21,9 +24,13 @@ import Task exposing (Task)
 
 type alias Parent m =
     { m
-        | accounts : Dict Int DRec
+        | accounts : Dict Int Account
         , currency : Currency
     }
+
+
+type Account
+    = Account DRec
 
 
 type FieldInput
@@ -31,7 +38,7 @@ type FieldInput
     | Validate
 
 
-init : DRec
+init : Account
 init =
     DRec.init
         |> DRec.field "aid" DInt
@@ -40,18 +47,50 @@ init =
         |> DRec.field "initial_balance" DInt
         |> DRec.field "bank_account" DString
         |> DRec.field "bank_name" DString
+        |> Account
 
 
-id : DRec -> Int
-id drec =
+id : Account -> Int
+id (Account drec) =
     DRec.get "aid" drec
         |> DRec.toInt
         |> Result.withDefault 0
 
 
-name : DRec -> String
-name drec =
+name : Account -> String
+name (Account drec) =
     DRec.get "name" drec
+        |> DRec.toString
+        |> Result.withDefault ""
+
+
+initialBalance : Currency -> Account -> String
+initialBalance currency (Account drec) =
+    DRec.fieldBuffer "initial_balance" drec
+        |> Maybe.withDefault
+            (DRec.get "initial_balance" drec
+                |> DRec.toInt
+                |> Result.withDefault 0
+                |> (\balance ->
+                        let
+                            amount =
+                                toFloat balance / (toFloat <| Currency.subUnitRatio currency)
+                        in
+                        FormatNumber.format (Currency.locale currency) amount
+                   )
+            )
+
+
+bankAccount : Account -> String
+bankAccount (Account drec) =
+    DRec.get "bank_account" drec
+        |> DRec.toString
+        |> Result.withDefault ""
+
+
+bankName : Account -> String
+bankName (Account drec) =
+    DRec.get "bank_name" drec
         |> DRec.toString
         |> Result.withDefault ""
 
@@ -60,12 +99,12 @@ fieldInput : FieldInput -> Int -> String -> Parent m -> String -> ( Parent m, Cm
 fieldInput action accountId field model value =
     Dict.get accountId model.accounts
         |> Maybe.map
-            (\drec ->
+            (\(Account drec) ->
                 let
                     newDRec =
                         update action field model.currency drec value
                 in
-                ( { model | accounts = Dict.insert accountId newDRec model.accounts }
+                ( { model | accounts = Dict.insert accountId (Account newDRec) model.accounts }
                 , Cmd.none
                 )
             )
@@ -80,23 +119,6 @@ update action field currency account value =
 
         _ ->
             DRec.setString field value account
-
-
-initialBalance : Parent m -> DRec -> String
-initialBalance model drec =
-    DRec.fieldBuffer "initial_balance" drec
-        |> Maybe.withDefault
-            (DRec.get "initial_balance" drec
-                |> DRec.toInt
-                |> Result.withDefault 0
-                |> (\balance ->
-                        let
-                            amount =
-                                toFloat balance / (toFloat <| Currency.subUnitRatio model.currency)
-                        in
-                        FormatNumber.format (Currency.locale model.currency) amount
-                   )
-            )
 
 
 validateBalance : FieldInput -> Currency -> String -> Maybe DField
@@ -145,12 +167,13 @@ validate accountId meld =
     in
     Dict.get accountId model.accounts
         |> Maybe.map
-            (\drec ->
+            (\(Account drec) ->
                 let
                     nameLen =
-                        name drec |> String.length
+                        name (Account drec) |> String.length
 
-                    -- make sure all partial input are validated as onBlur might not be always triggered
+                    -- make sure all partial input are validated as onBlur might
+                    -- not be always triggered
                     storeDRec =
                         DRec.fieldNames drec
                             |> List.filter
@@ -168,7 +191,14 @@ validate accountId meld =
                                 drec
                 in
                 if DRec.isValid storeDRec && nameLen > 0 then
-                    Meld.init { model | accounts = Dict.insert (id drec) storeDRec model.accounts }
+                    Meld.init
+                        { model
+                            | accounts =
+                                Dict.insert
+                                    (id (Account drec))
+                                    (Account storeDRec)
+                                    model.accounts
+                        }
                         |> Task.succeed
                 else
                     fail "Correct account field errors."

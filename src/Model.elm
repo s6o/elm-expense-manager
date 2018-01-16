@@ -6,6 +6,7 @@ module Model
 
 import DRec exposing (DError, DRec)
 import Dict exposing (Dict)
+import Manager.Account exposing (Account)
 import Manager.Auth exposing (Auth)
 import Manager.Category exposing (Category)
 import Manager.Currency exposing (Currency)
@@ -34,6 +35,6 @@ type alias Model =
     , claims : Jwt
     , user : User
     , currency : Currency
-    , accounts : Dict Int DRec
+    , accounts : Dict Int Account
     , categories : Dict String (List Category)
     }

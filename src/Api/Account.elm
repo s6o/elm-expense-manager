@@ -10,7 +10,7 @@ import Dict
 import Http
 import HttpBuilder exposing (..)
 import Json.Decode
-import Manager.Account as Account
+import Manager.Account as Account exposing (Account(..))
 import Manager.User as User
 import Meld exposing (Error(..), Meld)
 import Messages exposing (Msg)
@@ -56,17 +56,23 @@ save accountId meld =
             )
 
 
-get : Meld Model Error Msg -> Task Error (List DRec)
+get : Meld Model Error Msg -> Task Error (List Account)
 get meld =
     let
         model =
             Meld.model meld
+
+        (Account drec) =
+            Account.init
     in
     model.apiBaseUrl
         ++ ("/accounts?mgr_id=eq." ++ (Basics.toString <| User.uid model.user))
         |> HttpBuilder.get
         |> withHeaders (tokenHeader model.token)
-        |> withExpect (Http.expectJson <| Json.Decode.list (DRec.decoder Account.init))
+        |> withExpect
+            (Json.Decode.list (DRec.decoder drec |> Json.Decode.map Account)
+                |> Http.expectJson
+            )
         |> HttpBuilder.toTask
         |> Task.mapError Meld.EHttp
 
@@ -84,7 +90,7 @@ patch accountId meld =
     in
     Dict.get accountId model.accounts
         |> Maybe.map
-            (\drec ->
+            (\(Account drec) ->
                 model.apiBaseUrl
                     ++ ("/accounts?aid=eq." ++ (accountId |> Basics.toString))
                     |> HttpBuilder.patch

@@ -8,7 +8,7 @@ import DRec exposing (DError, DRec)
 import Dict
 import Html exposing (Html, div, text)
 import KeyEvent
-import Manager.Account as Account exposing (FieldInput(..))
+import Manager.Account as Account exposing (Account(..), FieldInput(..))
 import Material.Button as Button
 import Material.Elevation as Elevation
 import Material.Options as Options exposing (css)
@@ -32,8 +32,8 @@ view model =
         )
 
 
-account : Model -> Int -> DRec -> Html Msg
-account model baseIndex drec =
+account : Model -> Int -> Account -> Html Msg
+account model baseIndex account =
     Options.div
         [ Elevation.e4
         , css "padding" "5px"
@@ -47,12 +47,12 @@ account model baseIndex drec =
                 , Textfield.floatingLabel
                 , css "width" "100%"
                 , Textfield.error "An non-empty account name is required"
-                    |> Options.when (String.length (Account.name drec) <= 0)
-                , Account.name drec
+                    |> Options.when (String.length (Account.name account) <= 0)
+                , Account.name account
                     |> Textfield.value
-                , TextInput (Account.fieldInput Validate (Account.id drec) "name") model
+                , TextInput (Account.fieldInput Validate (Account.id account) "name") model
                     |> Options.onInput
-                , KeyEvent.onEnter <| Request [ Api.Account.save (Account.id drec) ]
+                , KeyEvent.onEnter <| Request [ Api.Account.save (Account.id account) ]
                 ]
                 []
             ]
@@ -65,14 +65,20 @@ account model baseIndex drec =
                 , Textfield.floatingLabel
                 , css "width" "100%"
                 , Textfield.error "A numeric value with at max. 2 decimal places"
-                    |> Options.when (not <| DRec.hasValue "initial_balance" drec)
-                , Account.initialBalance model drec
+                    |> Options.when
+                        (let
+                            (Account drec) =
+                                account
+                         in
+                         not <| DRec.hasValue "initial_balance" drec
+                        )
+                , Account.initialBalance model.currency account
                     |> Textfield.value
-                , TextInput (Account.fieldInput Collect (Account.id drec) "initial_balance") model
+                , TextInput (Account.fieldInput Collect (Account.id account) "initial_balance") model
                     |> Options.onInput
-                , TextBlur (Account.fieldInput Validate (Account.id drec) "initial_balance") model (Account.initialBalance model drec)
+                , TextBlur (Account.fieldInput Validate (Account.id account) "initial_balance") model (Account.initialBalance model.currency account)
                     |> Options.onBlur
-                , KeyEvent.onEnter <| Request [ Api.Account.save (Account.id drec) ]
+                , KeyEvent.onEnter <| Request [ Api.Account.save (Account.id account) ]
                 ]
                 []
             ]
@@ -84,13 +90,11 @@ account model baseIndex drec =
                 [ Textfield.label "Bank account number"
                 , Textfield.floatingLabel
                 , css "width" "100%"
-                , DRec.get "bank_account" drec
-                    |> DRec.toString
-                    |> Result.withDefault ""
+                , Account.bankAccount account
                     |> Textfield.value
-                , TextInput (Account.fieldInput Validate (Account.id drec) "bank_account") model
+                , TextInput (Account.fieldInput Validate (Account.id account) "bank_account") model
                     |> Options.onInput
-                , KeyEvent.onEnter <| Request [ Api.Account.save (Account.id drec) ]
+                , KeyEvent.onEnter <| Request [ Api.Account.save (Account.id account) ]
                 ]
                 []
             ]
@@ -102,13 +106,11 @@ account model baseIndex drec =
                 [ Textfield.label "Bank name"
                 , Textfield.floatingLabel
                 , css "width" "100%"
-                , DRec.get "bank_name" drec
-                    |> DRec.toString
-                    |> Result.withDefault ""
+                , Account.bankName account
                     |> Textfield.value
-                , TextInput (Account.fieldInput Validate (Account.id drec) "bank_name") model
+                , TextInput (Account.fieldInput Validate (Account.id account) "bank_name") model
                     |> Options.onInput
-                , KeyEvent.onEnter <| Request [ Api.Account.save (Account.id drec) ]
+                , KeyEvent.onEnter <| Request [ Api.Account.save (Account.id account) ]
                 ]
                 []
             ]
@@ -140,7 +142,7 @@ account model baseIndex drec =
                     [ Button.colored
                     , Button.raised
                     , Button.ripple
-                    , Options.onClick <| Request [ Api.Account.save (Account.id drec) ]
+                    , Options.onClick <| Request [ Api.Account.save (Account.id account) ]
                     ]
                     [ text "Save" ]
                 ]
