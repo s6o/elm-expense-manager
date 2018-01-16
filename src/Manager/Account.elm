@@ -12,7 +12,7 @@ module Manager.Account
 import DRec exposing (DError, DField, DRec, DType(..))
 import Dict exposing (Dict)
 import FormatNumber
-import Manager.Currency as Currency
+import Manager.Currency as Currency exposing (Currency)
 import Maybe.Extra as EMaybe
 import Meld exposing (Error(..), Meld)
 import Regex
@@ -22,7 +22,7 @@ import Task exposing (Task)
 type alias Parent m =
     { m
         | accounts : Dict Int DRec
-        , currency : DRec
+        , currency : Currency
     }
 
 
@@ -72,7 +72,7 @@ fieldInput action accountId field model value =
         |> Maybe.withDefault ( model, Cmd.none )
 
 
-update : FieldInput -> String -> DRec -> DRec -> String -> DRec
+update : FieldInput -> String -> Currency -> DRec -> String -> DRec
 update action field currency account value =
     case field of
         "initial_balance" ->
@@ -94,12 +94,12 @@ initialBalance model drec =
                             amount =
                                 toFloat balance / (toFloat <| Currency.subUnitRatio model.currency)
                         in
-                        FormatNumber.format (Currency.locale model.currency 2) amount
+                        FormatNumber.format (Currency.locale model.currency) amount
                    )
             )
 
 
-validateBalance : FieldInput -> DRec -> String -> Maybe DField
+validateBalance : FieldInput -> Currency -> String -> Maybe DField
 validateBalance action currency value =
     case action of
         Collect ->
@@ -108,20 +108,14 @@ validateBalance action currency value =
         Validate ->
             let
                 decSep =
-                    DRec.get "decimal_separator" currency
-                        |> DRec.toString
-                        |> Result.withDefault "."
+                    Currency.decimalSeparator currency
 
                 thoSep =
-                    DRec.get "thousand_separator" currency
-                        |> DRec.toString
-                        |> Result.withDefault ""
+                    Currency.thousandSeparator currency
 
                 subRatio =
-                    DRec.get "sub_unit_ratio" currency
-                        |> DRec.toInt
-                        |> Result.map Basics.toFloat
-                        |> Result.withDefault 1.0
+                    Currency.subUnitRatio currency
+                        |> Basics.toFloat
 
                 numRe =
                     "^\\s*-?\\d+(\\" ++ decSep ++ "\\d{1,2})?\\s*$"

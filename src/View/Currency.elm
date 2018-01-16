@@ -67,9 +67,7 @@ view model =
                 , Textfield.floatingLabel
                 , Textfield.maxlength 3
                 , css "width" "100%"
-                , DRec.get "symbol" model.currency
-                    |> DRec.toString
-                    |> Result.withDefault ""
+                , Currency.symbol model.currency
                     |> Textfield.value
                 , TextInput (Currency.fieldInput "symbol") model
                     |> Options.onInput
@@ -86,9 +84,7 @@ view model =
                 , Textfield.floatingLabel
                 , Textfield.maxlength 1
                 , css "width" "100%"
-                , DRec.get "decimal_separator" model.currency
-                    |> DRec.toString
-                    |> Result.withDefault ""
+                , Currency.decimalSeparator model.currency
                     |> Textfield.value
                 , TextInput (Currency.fieldInput "decimal_separator") model
                     |> Options.onInput
@@ -105,9 +101,7 @@ view model =
                 , Textfield.floatingLabel
                 , Textfield.maxlength 1
                 , css "width" "100%"
-                , DRec.get "thousand_separator" model.currency
-                    |> DRec.toString
-                    |> Result.withDefault ""
+                , Currency.thousandSeparator model.currency
                     |> Textfield.value
                 , TextInput (Currency.fieldInput "thousand_separator") model
                     |> Options.onInput

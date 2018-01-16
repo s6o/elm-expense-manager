@@ -1,10 +1,14 @@
 module Manager.Currency
     exposing
-        ( fieldInput
+        ( Currency(..)
+        , decimalSeparator
+        , fieldInput
         , init
         , isoCode
         , locale
         , subUnitRatio
+        , symbol
+        , thousandSeparator
         , validate
         )
 
@@ -16,10 +20,14 @@ import Task exposing (Task)
 
 
 type alias Parent m =
-    { m | currency : DRec }
+    { m | currency : Currency }
 
 
-init : DRec
+type Currency
+    = Currency DRec
+
+
+init : Currency
 init =
     DRec.init
         |> DRec.field "iso_code" DString
@@ -27,52 +35,72 @@ init =
         |> DRec.field "symbol" DString
         |> DRec.field "decimal_separator" DString
         |> DRec.field "thousand_separator" DString
+        |> Currency
 
 
-isoCode : DRec -> String
-isoCode drec =
+isoCode : Currency -> String
+isoCode (Currency drec) =
     DRec.get "iso_code" drec
         |> DRec.toString
         |> Result.withDefault ""
 
 
-subUnitRatio : DRec -> Int
-subUnitRatio drec =
+subUnitRatio : Currency -> Int
+subUnitRatio (Currency drec) =
     DRec.get "sub_unit_ratio" drec
         |> DRec.toInt
         |> Result.withDefault 1
 
 
+symbol : Currency -> String
+symbol (Currency drec) =
+    DRec.get "symbol" drec
+        |> DRec.toString
+        |> Result.withDefault ""
+
+
+decimalSeparator : Currency -> String
+decimalSeparator (Currency drec) =
+    DRec.get "decimal_separator" drec
+        |> DRec.toString
+        |> Result.withDefault ""
+
+
+thousandSeparator : Currency -> String
+thousandSeparator (Currency drec) =
+    DRec.get "thousand_separator" drec
+        |> DRec.toString
+        |> Result.withDefault ""
+
+
 fieldInput : String -> Parent m -> String -> ( Parent m, Cmd msg )
 fieldInput field model value =
+    let
+        (Currency drec) =
+            model.currency
+    in
     case field of
         "sub_unit_ratio" ->
             String.toInt value
                 |> Result.map
                     (\i ->
-                        ( { model | currency = DRec.setInt field i model.currency }
+                        ( { model | currency = DRec.setInt field i drec |> Currency }
                         , Cmd.none
                         )
                     )
                 |> Result.withDefault ( model, Cmd.none )
 
         _ ->
-            ( { model | currency = DRec.setString field value model.currency }
+            ( { model | currency = DRec.setString field value drec |> Currency }
             , Cmd.none
             )
 
 
-locale : DRec -> Int -> Locale
-locale drec decPlaces =
-    { decimals = decPlaces
-    , thousandSeparator =
-        DRec.get "thousand_separator" drec
-            |> DRec.toString
-            |> Result.withDefault ""
-    , decimalSeparator =
-        DRec.get "decimal_separator" drec
-            |> DRec.toString
-            |> Result.withDefault ""
+locale : Currency -> Locale
+locale currency =
+    { decimals = 2
+    , thousandSeparator = thousandSeparator currency
+    , decimalSeparator = decimalSeparator currency
     , negativePrefix = "-"
     , negativeSuffix = ""
     }
@@ -84,26 +112,22 @@ validate meld =
         model =
             Meld.model meld
 
+        (Currency drec) =
+            model.currency
+
         fail msg =
             msg
                 |> EMsg
                 |> Task.fail
     in
-    if DRec.isEmpty model.currency then
+    if DRec.isEmpty drec then
         fail "Currency fields not set: ISO Code and Sub Unit Ratio are mandatory."
+    else if
+        String.length (isoCode model.currency)
+            == 3
+            && subUnitRatio model.currency
+            > 0
+    then
+        Task.succeed meld
     else
-        let
-            isoCode =
-                DRec.get "iso_code" model.currency
-                    |> DRec.toString
-                    |> Result.withDefault ""
-
-            subUnitRatio =
-                DRec.get "sub_unit_ratio" model.currency
-                    |> DRec.toInt
-                    |> Result.withDefault 0
-        in
-        if String.length isoCode == 3 && subUnitRatio > 0 then
-            Task.succeed meld
-        else
-            fail "Required fields: ISO Code, Sub Unit Ratio"
+        fail "Required fields: ISO Code, Sub Unit Ratio"

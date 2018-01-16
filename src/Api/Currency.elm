@@ -8,7 +8,8 @@ import Api.Headers exposing (objectHeader, tokenHeader)
 import DRec exposing (DRec)
 import Http
 import HttpBuilder exposing (..)
-import Manager.Currency as Currency
+import Json.Decode
+import Manager.Currency as Currency exposing (Currency(..))
 import Meld exposing (Error, Meld)
 import Messages exposing (Msg)
 import Model exposing (Model)
@@ -19,10 +20,10 @@ read : Meld Model Error Msg -> Task Error (Meld Model Error Msg)
 read meld =
     get meld
         |> Task.map
-            (\drec ->
+            (\c ->
                 let
                     taskModel ma =
-                        { ma | currency = drec }
+                        { ma | currency = c }
                 in
                 Meld.withMerge taskModel meld
             )
@@ -48,17 +49,20 @@ save meld =
             )
 
 
-get : Meld Model Error Msg -> Task Error DRec
+get : Meld Model Error Msg -> Task Error Currency
 get meld =
     let
         model =
             Meld.model meld
+
+        (Currency drec) =
+            model.currency
     in
     model.apiBaseUrl
         ++ "/currency"
         |> HttpBuilder.get
         |> withHeaders (objectHeader ++ tokenHeader model.token)
-        |> withExpect (Http.expectJson (DRec.decoder model.currency))
+        |> withExpect (Http.expectJson (DRec.decoder drec |> Json.Decode.map Currency))
         |> HttpBuilder.toTask
         |> Task.mapError Meld.EHttp
 
@@ -68,12 +72,15 @@ patch meld =
     let
         model =
             Meld.model meld
+
+        (Currency drec) =
+            model.currency
     in
     model.apiBaseUrl
         ++ ("/currency?iso_code=eq." ++ Currency.isoCode model.currency)
         |> HttpBuilder.patch
         |> withHeaders (tokenHeader model.token)
-        |> withJsonBody (DRec.encoder model.currency)
+        |> withJsonBody (DRec.encoder drec)
         |> withExpect Http.expectString
         |> HttpBuilder.toTask
         |> Task.mapError Meld.EHttp

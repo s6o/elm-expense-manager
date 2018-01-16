@@ -6,6 +6,7 @@ module Model
 
 import DRec exposing (DError, DRec)
 import Dict exposing (Dict)
+import Manager.Currency exposing (Currency)
 import Material
 import Route exposing (Route, Tab)
 
@@ -28,7 +29,7 @@ type alias Model =
     , auth : DRec
     , claims : DRec
     , user : DRec
-    , currency : DRec
+    , currency : Currency
     , accounts : Dict Int DRec
     , categories : Dict String (List DRec)
     }
