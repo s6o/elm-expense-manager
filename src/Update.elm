@@ -183,9 +183,6 @@ update msg model =
         TextInput updateFn m v ->
             updateFn { m | errors = Nothing, messages = Nothing } v
 
-        TextBlur updateFn m v ->
-            updateFn m v
-
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
