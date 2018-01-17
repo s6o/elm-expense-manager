@@ -31,6 +31,7 @@ module DRec
         , init
         , isEmpty
         , isValid
+        , isValidWith
         , schema
         , setBool
         , setDRec
@@ -81,7 +82,7 @@ These are for basic types that just wrap `setWith`.
 
 # Query
 
-@docs errorMessages, fieldBuffer, fieldError, fieldNames, get, hasSchema, hasValue, isEmpty, isValid, schema
+@docs errorMessages, fieldBuffer, fieldError, fieldNames, get, hasSchema, hasValue, isEmpty, isValid, isValidWith, schema
 
 
 # Decode
@@ -126,8 +127,7 @@ type DType
 {-| Sub-type for container types.
 -}
 type DValue
-    = VNil
-    | VBool
+    = VBool
     | VDRec DSchema
     | VFloat
     | VInt
@@ -169,13 +169,23 @@ type DSchema
 
 {-| @private
 -}
-fieldType : DField -> DType
-fieldType dfield =
+fieldType : String -> DField -> DRec -> DType
+fieldType fname dfield (DRec r) =
+    let
+        schemaType =
+            Dict.get fname r.schema
+                |> Maybe.withDefault DNever
+    in
     case dfield of
         DArray_ dfa ->
-            Array.get 0 dfa
-                |> Maybe.map (\df -> DArray <| fieldSubType df)
-                |> Maybe.withDefault (DArray VNil)
+            case Array.get 0 dfa of
+                Nothing ->
+                    schemaType
+
+                Just df ->
+                    fieldSubType fname df (DRec r)
+                        |> Maybe.map DArray
+                        |> Maybe.withDefault schemaType
 
         DBool_ _ ->
             DBool
@@ -193,18 +203,24 @@ fieldType dfield =
             DJson
 
         DList_ dfl ->
-            dfl
-                |> List.head
-                |> Maybe.map (\df -> DList <| fieldSubType df)
-                |> Maybe.withDefault (DList VNil)
+            case List.head dfl of
+                Nothing ->
+                    schemaType
+
+                Just df ->
+                    fieldSubType fname df (DRec r)
+                        |> Maybe.map DList
+                        |> Maybe.withDefault schemaType
 
         DMaybe_ mf ->
             case mf of
                 Nothing ->
-                    DMaybe VNil
+                    schemaType
 
                 Just f ->
-                    DMaybe <| fieldSubType f
+                    fieldSubType fname f (DRec r)
+                        |> Maybe.map DMaybe
+                        |> Maybe.withDefault schemaType
 
         DString_ _ ->
             DString
@@ -212,29 +228,29 @@ fieldType dfield =
 
 {-| @private
 -}
-fieldSubType : DField -> DValue
-fieldSubType dfield =
-    case fieldType dfield of
+fieldSubType : String -> DField -> DRec -> Maybe DValue
+fieldSubType fname dfield drec =
+    case fieldType fname dfield drec of
         DBool ->
-            VBool
+            Just VBool
 
         DDRec dschema ->
-            VDRec dschema
+            Just <| VDRec dschema
 
         DFloat ->
-            VFloat
+            Just VFloat
 
         DInt ->
-            VInt
+            Just VInt
 
         DJson ->
-            VJson
+            Just VJson
 
         DString ->
-            VString
+            Just VString
 
         _ ->
-            VNil
+            Nothing
 
 
 {-| Error tags
@@ -288,32 +304,21 @@ field field dtype (DRec r) =
                 |> InvalidSchemaType
                 |> (\derror -> { r | errors = Dict.insert field derror r.errors })
     in
-    case dtype of
-        DNever ->
-            DRec typeError
+    case
+        Dict.get field r.schema
+    of
+        Nothing ->
+            DRec
+                { r
+                    | fields = r.fields ++ [ field ]
+                    , schema = Dict.insert field dtype r.schema
+                }
 
-        DArray VNil ->
-            DRec typeError
-
-        DMaybe VNil ->
-            DRec typeError
-
-        _ ->
-            case
-                Dict.get field r.schema
-            of
-                Nothing ->
-                    DRec
-                        { r
-                            | fields = r.fields ++ [ field ]
-                            , schema = Dict.insert field dtype r.schema
-                        }
-
-                Just _ ->
-                    field
-                        |> DuplicateField
-                        |> (\derror -> { r | errors = Dict.insert field derror r.errors })
-                        |> DRec
+        Just _ ->
+            field
+                |> DuplicateField
+                |> (\derror -> { r | errors = Dict.insert field derror r.errors })
+                |> DRec
 
 
 
@@ -392,18 +397,22 @@ For quering the error and input buffer use `fieldError` and `fieldBuffer` respec
 setWith : String -> (a -> Maybe DField) -> a -> DRec -> DRec
 setWith field toValue value (DRec r) =
     let
-        setError de =
-            { r
-                | buffers =
-                    Dict.insert
-                        field
-                        (Basics.toString value
-                            -- Basics.toString adds quotes which we don't want
-                            |> (String.dropLeft 1 >> String.dropRight 1)
-                        )
-                        r.buffers
-                , errors = Dict.insert field de r.errors
-            }
+        setError bufferFlag de =
+            case bufferFlag of
+                False ->
+                    { r | errors = Dict.insert field de r.errors }
+
+                True ->
+                    let
+                        bufferValue =
+                            Basics.toString value
+                                -- Basics.toString adds quotes which we don't want
+                                |> (String.dropLeft 1 >> String.dropRight 1)
+                    in
+                    { r
+                        | buffers = Dict.insert field bufferValue r.buffers
+                        , errors = Dict.insert field de r.errors
+                    }
     in
     case
         Dict.get field r.schema
@@ -411,14 +420,14 @@ setWith field toValue value (DRec r) =
         Nothing ->
             field
                 |> UknownField
-                |> setError
+                |> setError False
                 |> DRec
 
         Just dt ->
             toValue value
                 |> Maybe.map
                     (\dfield ->
-                        if fieldType dfield == dt then
+                        if fieldType field dfield (DRec r) == dt then
                             DRec
                                 { r
                                     | buffers = Dict.remove field r.buffers
@@ -426,14 +435,14 @@ setWith field toValue value (DRec r) =
                                     , store = Dict.insert field dfield r.store
                                 }
                         else
-                            (Basics.toString (fieldType dfield) ++ " /= " ++ Basics.toString dt)
+                            (Basics.toString (fieldType field dfield (DRec r)) ++ " /= " ++ Basics.toString dt)
                                 |> TypeMismatch
-                                |> setError
+                                |> setError True
                                 |> DRec
                     )
                 |> Maybe.withDefault
                     (ValidationFailed field
-                        |> setError
+                        |> setError True
                         |> DRec
                     )
 
@@ -568,7 +577,15 @@ isEmpty (DRec r) =
 -}
 isValid : DRec -> Bool
 isValid (DRec r) =
-    r.fields
+    isValidWith r.fields (DRec r)
+
+
+{-| Check if a record is valid for specified fields: no errors and `hasValue`
+returns 'True' for every listed field.
+-}
+isValidWith : List String -> DRec -> Bool
+isValidWith fields (DRec r) =
+    fields
         |> List.foldl
             (\fname accum -> hasValue fname (DRec r) && accum)
             (Dict.isEmpty r.errors)
@@ -944,9 +961,6 @@ fieldDecoder fname dtype drec =
 
         DArray dvalue ->
             case dvalue of
-                VNil ->
-                    Json.Decode.fail "DArray VNil is never decoded."
-
                 VBool ->
                     Json.Decode.array Json.Decode.bool
                         |> arrayDecoder fname drec fromBool
@@ -1013,9 +1027,6 @@ fieldDecoder fname dtype drec =
 
         DList dvalue ->
             case dvalue of
-                VNil ->
-                    Json.Decode.fail "DList VNil is never decoded."
-
                 VBool ->
                     Json.Decode.list Json.Decode.bool
                         |> listDecoder fname drec fromBool
@@ -1052,9 +1063,6 @@ fieldDecoder fname dtype drec =
 
         DMaybe dvalue ->
             case dvalue of
-                VNil ->
-                    Json.Decode.fail "DMaybe VNil is never decoded."
-
                 VBool ->
                     Json.Decode.maybe Json.Decode.bool
                         |> maybeDecoder fname drec fromBool
