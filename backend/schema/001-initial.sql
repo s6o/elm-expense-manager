@@ -200,16 +200,9 @@ grant select on table pg_authid, basic_auth.users to anon;
 grant select on table api.managers to anon;
 grant execute on function api.login(text, text) to anon;
 
+-- As of PostgreSQL 9.x
 grant all on schema api to webuser;
-grant all on api.account_transactions     to webuser;
-grant all on api.accounts                 to webuser;
-grant all on api.categories               to webuser;
-grant all on api.currency                 to webuser;
-grant all on api.languages                to webuser;
-grant all on api.management_group_members to webuser;
-grant all on api.management_groups        to webuser;
-grant all on api.managers                 to webuser;
-grant all on api.payment_types            to webuser;
-grant all on api.settings                 to webuser;
-grant all on api.transactions             to webuser;
-grant all on api.translations             to webuser;
+grant all privileges on all tables in schema api to webuser;
+grant all privileges on all sequences in schema api to webuser;
+grant all privileges on all functions in schema api to webuser;
+
