@@ -7,7 +7,7 @@ The Expense Manager in Elm is an experiment, to try out a few things differently
 After a year and change of almost daily Elm development and 20,000+ (single dev)
 SPA in production, a few _gripes_ have accumulated:
 
-  * tagging of things, redundant things, hundreds of pattern matches
+  * tagging of things, redundant things, every input field, every request etc.
   * JSON decoding/encoding - in most cases copy/paste boilarplate, it really
     should be a language feature e.g. Json.Decode.decoder : {..} -> Decoder {..}
 
@@ -18,7 +18,7 @@ There are two sub-project that Expense Manager uses to try address the above iss
 ## Progress
 
 ### Done
-  * Basic material interface with login/logout
+  * Basic Material (elm-mdl) interface with login/logout
   * Currency management
 
 ### TODO
