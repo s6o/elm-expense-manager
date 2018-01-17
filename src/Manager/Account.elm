@@ -4,6 +4,8 @@ module Manager.Account
         , FieldInput(..)
         , bankAccount
         , bankName
+        , defaultId
+        , empty
         , fieldInput
         , id
         , init
@@ -12,13 +14,11 @@ module Manager.Account
         , validate
         )
 
-import DRec exposing (DError, DField, DRec, DType(..))
+import DRec exposing (DError, DField, DRec, DType(..), DValue(..))
 import Dict exposing (Dict)
 import FormatNumber
 import Manager.Currency as Currency exposing (Currency(..))
-import Maybe.Extra as EMaybe
 import Meld exposing (Error(..), Meld)
-import Regex
 import Task exposing (Task)
 
 
@@ -38,6 +38,24 @@ type FieldInput
     | Validate
 
 
+defaultId : Int
+defaultId =
+    0
+
+
+empty : Int -> Account
+empty managerId =
+    init
+        |> (\(Account drec) ->
+                DRec.setInt "mgr_id" managerId drec
+                    |> DRec.setString "name" "<name-your-account>"
+                    |> DRec.setInt "initial_balance" 0
+                    |> DRec.setWith "bank_account" (DRec.fromMaybe DRec.fromString >> Just) Nothing
+                    |> DRec.setWith "bank_name" (DRec.fromMaybe DRec.fromString >> Just) Nothing
+           )
+        |> Account
+
+
 init : Account
 init =
     DRec.init
@@ -45,8 +63,8 @@ init =
         |> DRec.field "mgr_id" DInt
         |> DRec.field "name" DString
         |> DRec.field "initial_balance" DInt
-        |> DRec.field "bank_account" DString
-        |> DRec.field "bank_name" DString
+        |> DRec.field "bank_account" (DMaybe VString)
+        |> DRec.field "bank_name" (DMaybe VString)
         |> Account
 
 
@@ -115,7 +133,30 @@ update : FieldInput -> String -> Currency -> DRec -> String -> DRec
 update action field currency account value =
     case field of
         "initial_balance" ->
-            DRec.setWith field (validateBalance action currency) value account
+            Currency.validateNumerics currency value
+                |> (\v ->
+                        DRec.setWith field (validateBalance action currency) v account
+                   )
+
+        "bank_account" ->
+            let
+                mv =
+                    if not <| String.isEmpty value then
+                        Just value
+                    else
+                        Nothing
+            in
+            DRec.setWith field (DRec.fromMaybe DRec.fromString >> Just) mv account
+
+        "bank_name" ->
+            let
+                mv =
+                    if not <| String.isEmpty value then
+                        Just value
+                    else
+                        Nothing
+            in
+            DRec.setWith field (DRec.fromMaybe DRec.fromString >> Just) mv account
 
         _ ->
             DRec.setString field value account
@@ -128,30 +169,8 @@ validateBalance action currency value =
             Nothing
 
         Validate ->
-            let
-                decSep =
-                    Currency.decimalSeparator currency
-
-                thoSep =
-                    Currency.thousandSeparator currency
-
-                subRatio =
-                    Currency.subUnitRatio currency
-                        |> Basics.toFloat
-
-                numRe =
-                    "^\\s*-?\\d+(\\" ++ decSep ++ "\\d{1,2})?\\s*$"
-            in
-            Regex.replace Regex.All (Regex.regex thoSep) (\_ -> "") value
-                |> Regex.find (Regex.AtMost 1) (Regex.regex numRe)
-                |> List.head
-                |> Maybe.map
-                    (\r ->
-                        String.toFloat r.match
-                            |> Result.map (\f -> Basics.round (f * subRatio) |> DRec.fromInt)
-                            |> Result.toMaybe
-                    )
-                |> EMaybe.join
+            Currency.validateAmount currency value
+                |> Maybe.map DRec.fromInt
 
 
 validate : Int -> Meld (Parent m) Error msg -> Task Error (Meld (Parent m) Error msg)
@@ -172,10 +191,15 @@ validate accountId meld =
                     nameLen =
                         name (Account drec) |> String.length
 
+                    required =
+                        DRec.fieldNames drec
+                            -- drop aid, is handled by back-end
+                            |> List.drop 1
+
                     -- make sure all partial input are validated as onBlur might
                     -- not be always triggered
                     storeDRec =
-                        DRec.fieldNames drec
+                        required
                             |> List.filter
                                 (\fn ->
                                     DRec.fieldBuffer fn drec
@@ -190,7 +214,7 @@ validate accountId meld =
                                 )
                                 drec
                 in
-                if DRec.isValid storeDRec && nameLen > 0 then
+                if DRec.isValidWith required storeDRec && nameLen > 0 then
                     Meld.init
                         { model
                             | accounts =

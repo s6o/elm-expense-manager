@@ -1,6 +1,7 @@
 module Api.Headers
     exposing
         ( objectHeader
+        , recordHeader
         , tokenHeader
         )
 
@@ -13,6 +14,15 @@ module Api.Headers
 objectHeader : List ( String, String )
 objectHeader =
     [ ( "Accept", "application/vnd.pgrst.object+json" )
+    ]
+
+
+{-| Request PostgREST to return the inserted/updated record represenation.
+This is useful to avoid another request to get a complete record (with default values).
+-}
+recordHeader : List ( String, String )
+recordHeader =
+    [ ( "Prefer", "return=representation" )
     ]
 
 

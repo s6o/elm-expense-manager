@@ -1,10 +1,11 @@
 module Api.Account
     exposing
-        ( read
+        ( add
+        , read
         , save
         )
 
-import Api.Headers exposing (tokenHeader)
+import Api.Headers exposing (objectHeader, recordHeader, tokenHeader)
 import DRec exposing (DError, DRec)
 import Dict
 import Http
@@ -18,6 +19,25 @@ import Model exposing (Model)
 import Task exposing (Task)
 
 
+add : Meld Model Error Msg -> Task Error (Meld Model Error Msg)
+add meld =
+    Account.validate Account.defaultId meld
+        |> Task.andThen post
+        |> Task.map
+            (\account ->
+                let
+                    taskModel ma =
+                        { ma
+                            | messages = Just "Saved."
+                            , accounts =
+                                Dict.insert (Account.id account) account ma.accounts
+                                    |> Dict.insert Account.defaultId (Account.empty <| Jwt.userId ma.claims)
+                        }
+                in
+                Meld.withMerge taskModel meld
+            )
+
+
 read : Meld Model Error Msg -> Task Error (Meld Model Error Msg)
 read meld =
     get meld
@@ -28,7 +48,13 @@ read meld =
                         { ma
                             | accounts =
                                 results
-                                    |> List.map (\drec -> ( Account.id drec, drec ))
+                                    |> List.map (\a -> ( Account.id a, a ))
+                                    |> (\accounts ->
+                                            ( Account.defaultId
+                                            , Account.empty <| Jwt.userId ma.claims
+                                            )
+                                                :: accounts
+                                       )
                                     |> Dict.fromList
                         }
                 in
@@ -102,3 +128,33 @@ patch accountId meld =
                     |> Task.map (\_ -> meld)
             )
         |> Maybe.withDefault (fail <| "Incorrect account id: " ++ Basics.toString accountId)
+
+
+post : Meld Model Error Msg -> Task Error Account
+post meld =
+    let
+        model =
+            Meld.model meld
+
+        fail msg =
+            msg
+                |> EMsg
+                |> Task.fail
+    in
+    Dict.get Account.defaultId model.accounts
+        |> Maybe.map
+            (\(Account drec) ->
+                model.apiBaseUrl
+                    ++ "/accounts"
+                    |> HttpBuilder.post
+                    |> withHeaders (objectHeader ++ recordHeader ++ tokenHeader model.token)
+                    |> withJsonBody (DRec.encoder drec)
+                    |> withExpect
+                        (DRec.decoder drec
+                            |> Json.Decode.map Account
+                            |> Http.expectJson
+                        )
+                    |> HttpBuilder.toTask
+                    |> Task.mapError Meld.EHttp
+            )
+        |> Maybe.withDefault (fail <| "No new account record.")

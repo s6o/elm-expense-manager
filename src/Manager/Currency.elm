@@ -10,11 +10,15 @@ module Manager.Currency
         , symbol
         , thousandSeparator
         , validate
+        , validateAmount
+        , validateNumerics
         )
 
 import DRec exposing (DError, DRec, DType(..))
 import FormatNumber.Locales exposing (Locale)
+import Maybe.Extra as EMaybe
 import Meld exposing (Error(..), Meld)
+import Regex
 import String
 import Task exposing (Task)
 
@@ -104,6 +108,73 @@ locale currency =
     , negativePrefix = "-"
     , negativeSuffix = ""
     }
+
+
+validateAmount : Currency -> String -> Maybe Int
+validateAmount currency value =
+    let
+        decSep =
+            decimalSeparator currency
+                |> (\ds ->
+                        if ds == "." then
+                            "\\" ++ ds
+                        else
+                            ds
+                   )
+
+        thoSep =
+            thousandSeparator currency
+                |> (\ts ->
+                        if ts == "." then
+                            "\\" ++ ts
+                        else
+                            ts
+                   )
+
+        subRatio =
+            subUnitRatio currency
+                |> Basics.toFloat
+
+        numRe =
+            "^\\s*-?\\d+(" ++ decSep ++ "\\d{1,2})?\\s*$"
+    in
+    Regex.replace Regex.All (Regex.regex thoSep) (\_ -> "") value
+        |> Regex.find (Regex.AtMost 1) (Regex.regex numRe)
+        |> List.head
+        |> Maybe.map
+            (\r ->
+                String.toFloat r.match
+                    |> Result.map (\f -> Basics.round (f * subRatio))
+                    |> Result.toMaybe
+            )
+        |> EMaybe.join
+
+
+validateNumerics : Currency -> String -> String
+validateNumerics currency value =
+    let
+        decSep =
+            decimalSeparator currency
+                |> (\ds ->
+                        if ds == "." then
+                            "\\" ++ ds
+                        else
+                            ds
+                   )
+
+        thoSep =
+            thousandSeparator currency
+                |> (\ts ->
+                        if ts == "." then
+                            "\\" ++ ts
+                        else
+                            ts
+                   )
+
+        numRe =
+            "[^0-9" ++ decSep ++ thoSep ++ "]"
+    in
+    Regex.replace Regex.All (Regex.regex numRe) (\_ -> "") value
 
 
 validate : Meld (Parent m) Error msg -> Task Error (Meld (Parent m) Error msg)
