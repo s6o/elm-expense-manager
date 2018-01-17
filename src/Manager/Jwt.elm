@@ -2,6 +2,7 @@ module Manager.Jwt
     exposing
         ( Jwt(..)
         , init
+        , userId
         )
 
 {-| Check JWT token payload/claims and extract them into a DRec if present.
@@ -30,6 +31,13 @@ claims =
         |> DRec.field "email" DString
         |> DRec.field "exp" DInt
         |> Jwt
+
+
+userId : Jwt -> Int
+userId (Jwt drec) =
+    DRec.get "uid" drec
+        |> DRec.toInt
+        |> Result.withDefault 0
 
 
 {-| Initialize a `DRec` of JWT claims.

@@ -8,6 +8,7 @@ import DRec exposing (DRec)
 import Http
 import HttpBuilder exposing (..)
 import Json.Decode
+import Manager.Jwt as Jwt
 import Manager.User as User exposing (User(..))
 import Meld exposing (Error, Meld)
 import Messages exposing (Msg)
@@ -38,7 +39,7 @@ get meld =
             model.user
     in
     model.apiBaseUrl
-        ++ ("/managers?mid=eq." ++ (Basics.toString <| User.uid model.user))
+        ++ ("/managers?mid=eq." ++ (Basics.toString <| Jwt.userId model.claims))
         |> HttpBuilder.get
         |> withHeaders (objectHeader ++ tokenHeader model.token)
         |> withExpect (Http.expectJson (DRec.decoder drec |> Json.Decode.map User))

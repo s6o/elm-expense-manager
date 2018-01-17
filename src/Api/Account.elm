@@ -11,7 +11,7 @@ import Http
 import HttpBuilder exposing (..)
 import Json.Decode
 import Manager.Account as Account exposing (Account(..))
-import Manager.User as User
+import Manager.Jwt as Jwt
 import Meld exposing (Error(..), Meld)
 import Messages exposing (Msg)
 import Model exposing (Model)
@@ -66,7 +66,7 @@ get meld =
             Account.init
     in
     model.apiBaseUrl
-        ++ ("/accounts?mgr_id=eq." ++ (Basics.toString <| User.uid model.user))
+        ++ ("/accounts?mgr_id=eq." ++ (Basics.toString <| Jwt.userId model.claims))
         |> HttpBuilder.get
         |> withHeaders (tokenHeader model.token)
         |> withExpect

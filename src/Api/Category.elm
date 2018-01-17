@@ -10,6 +10,7 @@ import Http
 import HttpBuilder exposing (..)
 import Json.Decode
 import Manager.Category as Category exposing (Category(..))
+import Manager.Jwt as Jwt
 import Manager.User as User
 import Meld exposing (Error, Meld)
 import Messages exposing (Msg)
@@ -65,7 +66,7 @@ get meld =
             Category.init
     in
     model.apiBaseUrl
-        ++ ("/categories?mgr_id=eq." ++ (Basics.toString <| User.uid model.user) ++ "&order=parent_path.asc")
+        ++ ("/categories?mgr_id=eq." ++ (Basics.toString <| Jwt.userId model.claims) ++ "&order=parent_path.asc")
         |> HttpBuilder.get
         |> withHeaders (tokenHeader model.token)
         |> withExpect (Http.expectJson <| Json.Decode.list (DRec.decoder drec |> Json.Decode.map Category))

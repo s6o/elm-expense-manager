@@ -2,11 +2,10 @@ module Manager.User
     exposing
         ( User(..)
         , init
-        , uid
+        , managerId
         )
 
 import DRec exposing (DError, DRec, DType(..))
-import Manager.Jwt exposing (Jwt)
 
 
 type User
@@ -23,8 +22,8 @@ init =
         |> User
 
 
-uid : User -> Int
-uid (User drec) =
-    DRec.get "uid" drec
+managerId : User -> Int
+managerId (User drec) =
+    DRec.get "mid" drec
         |> DRec.toInt
         |> Result.withDefault 0
