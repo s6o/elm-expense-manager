@@ -26,7 +26,7 @@ insert into api.managers (email, name, lang) values
 insert into api.management_groups (name) values ('Lost Family');
 
 
-insert into api.management_group_members (group_id, member_id) values
+insert into api.management_group_members (group_id, mgr_id) values
   (1, 1)
 , (1, 2);
 
