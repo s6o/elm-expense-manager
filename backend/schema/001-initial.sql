@@ -86,6 +86,55 @@ create table api.account_transactions (
 , target_account integer references api.accounts(pk_id) on delete cascade on update cascade
 );
 
+-- Trash / Recycle Bin
+
+create table api.trash (
+  pk_id serial primary key
+, mgr_id integer references api.managers(pk_id) on delete cascade on update cascade
+, ts timestamp with time zone not null default now()
+, origin_schema text not null
+, origin_table text not null
+, record jsonb not null
+);
+
+-- when deleting from api.trash use this to restore the original record
+create or replace function restore_from_trash() returns trigger as $$
+begin
+    execute 'insert into ' || OLD.origin_schema || '.' || OLD.origin_table || ' '
+        || 'select * from json_populate_record(null::' || OLD.origin_schema || '.'
+        || quote_ident(OLD.origin_table) || ', ' || quote_literal(OLD.record) || ')';
+
+    return OLD;
+end;
+$$ language plpgsql;
+
+create trigger restore_from_trash before delete on api.trash
+    for each row execute procedure restore_from_trash();
+
+-- the table for which its deployed needs to have a mgr_id column
+-- referencing api.managers(pk_id) and table's primary key should not re-occur;
+-- a looooooong sequence will be probably fine given the scope of the application
+create or replace function move_to_trash() returns trigger as $$
+begin
+    insert into api.trash (mgr_id, origin_schema, origin_table, record)
+        values (OLD.mgr_id, TG_TABLE_SCHEMA, TG_TABLE_NAME, row_to_json(OLD.*));
+
+    return OLD;
+end;
+$$ language plpgsql;
+
+create trigger move_to_trash before delete on api.accounts
+    for each row execute procedure move_to_trash();
+
+create trigger move_to_trash before delete on api.payment_types
+    for each row execute procedure move_to_trash();
+
+create trigger move_to_trash before delete on api.categories
+    for each row execute procedure move_to_trash();
+
+create trigger move_to_trash before delete on api.account_transactions
+    for each row execute procedure move_to_trash();
+
 
 -- AUTH roles and access
 
