@@ -39,7 +39,7 @@ get meld =
             model.user
     in
     model.apiBaseUrl
-        ++ ("/managers?mid=eq." ++ (Basics.toString <| Jwt.userId model.claims))
+        ++ ("/managers?pk_id=eq." ++ (Basics.toString <| Jwt.userId model.claims))
         |> HttpBuilder.get
         |> withHeaders (objectHeader ++ tokenHeader model.token)
         |> withExpect (Http.expectJson (DRec.decoder drec |> Json.Decode.map User))

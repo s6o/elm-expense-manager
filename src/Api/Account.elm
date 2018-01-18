@@ -118,7 +118,7 @@ patch accountId meld =
         |> Maybe.map
             (\(Account drec) ->
                 model.apiBaseUrl
-                    ++ ("/accounts?aid=eq." ++ (accountId |> Basics.toString))
+                    ++ ("/accounts?pk_id=eq." ++ (accountId |> Basics.toString))
                     |> HttpBuilder.patch
                     |> withHeaders (tokenHeader model.token)
                     |> withJsonBody (DRec.encoder drec)

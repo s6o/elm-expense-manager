@@ -15,7 +15,7 @@ type Category
 init : Category
 init =
     DRec.init
-        |> DRec.field "cid" DInt
+        |> DRec.field "pk_id" DInt
         |> DRec.field "mgr_id" DInt
         |> DRec.field "name" DString
         |> DRec.field "parent_path" DString

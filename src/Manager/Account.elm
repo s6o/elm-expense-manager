@@ -59,7 +59,7 @@ empty managerId =
 init : Account
 init =
     DRec.init
-        |> DRec.field "aid" DInt
+        |> DRec.field "pk_id" DInt
         |> DRec.field "mgr_id" DInt
         |> DRec.field "name" DString
         |> DRec.field "initial_balance" DInt
@@ -70,7 +70,7 @@ init =
 
 id : Account -> Int
 id (Account drec) =
-    DRec.get "aid" drec
+    DRec.get "pk_id" drec
         |> DRec.toInt
         |> Result.withDefault 0
 
@@ -193,7 +193,7 @@ validate accountId meld =
 
                     required =
                         DRec.fieldNames drec
-                            -- drop aid, is handled by back-end
+                            -- drop pk_id, is handled by back-end
                             |> List.drop 1
 
                     -- make sure all partial input are validated as onBlur might

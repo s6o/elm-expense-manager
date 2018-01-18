@@ -15,7 +15,7 @@ type User
 init : User
 init =
     DRec.init
-        |> DRec.field "mid" DInt
+        |> DRec.field "pk_id" DInt
         |> DRec.field "email" DString
         |> DRec.field "name" DString
         |> DRec.field "lang" DString
@@ -24,6 +24,6 @@ init =
 
 managerId : User -> Int
 managerId (User drec) =
-    DRec.get "mid" drec
+    DRec.get "pk_id" drec
         |> DRec.toInt
         |> Result.withDefault 0
