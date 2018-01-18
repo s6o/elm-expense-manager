@@ -97,6 +97,7 @@ account model baseIndex account =
                     [ Button.colored
                     , Button.raised
                     , Button.ripple
+                    , Options.onClick <| Request [ Api.Account.remove (Account.id account) ]
                     ]
                     [ text "Remove" ]
                 ]

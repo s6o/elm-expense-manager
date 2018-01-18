@@ -2,6 +2,7 @@ module Api.Account
     exposing
         ( add
         , read
+        , remove
         , save
         )
 
@@ -59,6 +60,25 @@ read meld =
                         }
                 in
                 Meld.withMerge taskModel meld
+            )
+
+
+remove : Int -> Meld Model Error Msg -> Task Error (Meld Model Error Msg)
+remove accountId meld =
+    delete accountId meld
+        |> Task.map
+            (\dmeld ->
+                let
+                    model =
+                        Meld.model dmeld
+
+                    taskModel ma =
+                        { ma
+                            | messages = Just "Moved to Trash."
+                            , accounts = Dict.remove accountId ma.accounts
+                        }
+                in
+                Meld.withMerge taskModel dmeld
             )
 
 
@@ -158,3 +178,29 @@ post meld =
                     |> Task.mapError Meld.EHttp
             )
         |> Maybe.withDefault (fail <| "No new account record.")
+
+
+delete : Int -> Meld Model Error Msg -> Task Error (Meld Model Error Msg)
+delete accountId meld =
+    let
+        model =
+            Meld.model meld
+
+        fail msg =
+            msg
+                |> EMsg
+                |> Task.fail
+    in
+    Dict.get accountId model.accounts
+        |> Maybe.map
+            (\_ ->
+                model.apiBaseUrl
+                    ++ ("/accounts?pk_id=eq." ++ (accountId |> Basics.toString))
+                    |> HttpBuilder.delete
+                    |> withHeaders (tokenHeader model.token)
+                    |> withExpect Http.expectString
+                    |> HttpBuilder.toTask
+                    |> Task.mapError Meld.EHttp
+                    |> Task.map (\_ -> meld)
+            )
+        |> Maybe.withDefault (fail <| "Incorrect account id: " ++ Basics.toString accountId)
