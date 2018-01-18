@@ -7,7 +7,7 @@ create table api.languages (
 );
 
 create table api.translations (
-  tid serial primary key
+  pk_id serial primary key
 , lang text not null references api.languages(name) on delete cascade on update cascade
 , ctx text not null
 , key text not null
@@ -20,21 +20,21 @@ create table api.settings (
 );
 
 create table api.managers (
-  mid serial primary key
+  pk_id serial primary key
 , email text not null unique
 , name text not null
 , lang text not null references api.languages(name) on delete cascade on update cascade
 );
 
 create table api.management_groups (
-  mgid serial primary key
+  pk_id serial primary key
 , name text not null
 );
 
 create table api.management_group_members (
-  group_id integer references api.management_groups(mgid) on delete cascade on update cascade
-, member_id integer references api.managers(mid) on delete cascade on update cascade
-, primary key (group_id, member_id)
+  group_id integer references api.management_groups(pk_id) on delete cascade on update cascade
+, mgr_id integer references api.managers(pk_id) on delete cascade on update cascade
+, primary key (group_id, mgr_id)
 );
 
 create table api.currency (
@@ -47,8 +47,8 @@ create table api.currency (
 );
 
 create table api.accounts (
-  aid serial primary key
-, mgr_id integer references api.managers(mid) on delete cascade on update cascade
+  pk_id serial primary key
+, mgr_id integer references api.managers(pk_id) on delete cascade on update cascade
 , name text not null
 , initial_balance bigint
 , bank_account text
@@ -56,14 +56,14 @@ create table api.accounts (
 );
 
 create table api.payment_types (
-  pid serial primary key
-, mgr_id integer references api.managers(mid) on delete cascade on update cascade
+  pk_id serial primary key
+, mgr_id integer references api.managers(pk_id) on delete cascade on update cascade
 , name text not null
 );
 
 create table api.categories (
-  cid serial primary key
-, mgr_id integer references api.managers(mid) on delete cascade on update cascade
+  pk_id serial primary key
+, mgr_id integer references api.managers(pk_id) on delete cascade on update cascade
 , name text not null check(lower(name) = name)
 , parent_path text not null default '/'
 );
@@ -73,17 +73,17 @@ create table api.transactions (
 );
 
 create table api.account_transactions (
-  atid serial primary key
-, mgr_id integer references api.managers(mid) on delete cascade on update cascade
-, ts timestamp with time zone not null 
+  pk_id serial primary key
+, mgr_id integer references api.managers(pk_id) on delete cascade on update cascade
+, ts timestamp with time zone not null
 , transaction text references api.transactions(name) on delete cascade on update cascade
 , amount bigint default 0
 , title text not null
 , comments text
-, pt_id integer references api.payment_types(pid) on delete cascade on update cascade
-, cat_id integer references api.categories(cid) on delete cascade on update cascade
-, source_account integer references api.accounts(aid) on delete cascade on update cascade
-, target_account integer references api.accounts(aid) on delete cascade on update cascade
+, pt_id integer references api.payment_types(pk_id) on delete cascade on update cascade
+, cat_id integer references api.categories(pk_id) on delete cascade on update cascade
+, source_account integer references api.accounts(pk_id) on delete cascade on update cascade
+, target_account integer references api.accounts(pk_id) on delete cascade on update cascade
 );
 
 
@@ -173,7 +173,7 @@ begin
     select sign(row_to_json(r), current_setting('app.jwt_secret')) as token
     from (
         select _role as role,
-            (select am.mid from api.managers am where am.email = login.email) as uid,
+            (select am.pk_id from api.managers am where am.email = login.email) as uid,
             login.email as email,
             extract(epoch from now())::integer + 60*60 as exp
     ) r
@@ -205,4 +205,3 @@ grant all on schema api to webuser;
 grant all privileges on all tables in schema api to webuser;
 grant all privileges on all sequences in schema api to webuser;
 grant all privileges on all functions in schema api to webuser;
-
