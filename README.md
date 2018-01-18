@@ -20,11 +20,12 @@ There are two sub-project that Expense Manager uses to try address the above iss
 ### Done
   * Basic Material (elm-mdl) interface with login/logout
   * Currency management
+  * Account management
 
 ### TODO
-  * Account management
   * Category managment
   * Transactions
+  * Trash
   * Statistics
   * Management groups (family accounts)
 
