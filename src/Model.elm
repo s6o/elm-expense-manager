@@ -4,7 +4,6 @@ module Model
         , Model
         )
 
-import DRec exposing (DError, DRec)
 import Dict exposing (Dict)
 import Manager.Account exposing (Account)
 import Manager.Auth exposing (Auth)
@@ -22,11 +21,9 @@ type alias Flags =
 
 
 type alias Model =
-    { actions : Int
-    , apiBaseUrl : String
+    { apiBaseUrl : String
     , errors : Maybe String
     , messages : Maybe String
-    , loading : Int
     , mdl : Material.Model
     , route : Route
     , tabs : Dict String Tab

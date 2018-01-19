@@ -29,11 +29,9 @@ init : Flags -> ( Model, Cmd Msg )
 init flags =
     let
         model =
-            { actions = 0
-            , apiBaseUrl = "/api"
+            { apiBaseUrl = "/api"
             , errors = Nothing
             , messages = Nothing
-            , loading = 0
             , mdl = Material.model
             , route = Route.Empty
             , tabs = initTabs
@@ -82,12 +80,12 @@ update msg model =
         Act tasks ->
             Meld.init model
                 |> Meld.addTasks tasks
-                |> Meld.send Results (\_ -> model.actions) (\ac -> { model | actions = model.actions + ac })
+                |> Meld.send Results
 
         ActSeq tasks ->
             Meld.init model
                 |> Meld.addTasks tasks
-                |> Meld.sequence Results (\_ -> model.actions) (\ac -> { model | actions = model.actions + ac })
+                |> Meld.sequence Results
 
         IgnoreKey ->
             ( model, Cmd.none )
@@ -98,17 +96,12 @@ update msg model =
         Request tasks ->
             Meld.init model
                 |> Meld.addTasks tasks
-                |> Meld.send Responses (\_ -> model.loading) (\tc -> { model | loading = model.loading + tc })
+                |> Meld.send Responses
 
-        Responses taskCount result ->
+        Responses result ->
             case result of
                 Ok meld ->
-                    Meld.update
-                        taskCount
-                        (\_ -> model.loading)
-                        (\tc -> { model | loading = tc })
-                        model
-                        meld
+                    Meld.update model meld
 
                 Err meldError ->
                     let
@@ -132,18 +125,13 @@ update msg model =
                         True ->
                             Meld.init model
                                 |> Meld.addTasks [ Api.Auth.logout ]
-                                |> Meld.cmds (Responses 0)
+                                |> Meld.cmds Responses
                     )
 
-        Results actCount result ->
+        Results result ->
             case result of
                 Ok meld ->
-                    Meld.update
-                        actCount
-                        (\_ -> model.actions)
-                        (\ac -> { model | actions = model.actions - ac })
-                        model
-                        meld
+                    Meld.update model meld
 
                 Err meldError ->
                     let
@@ -183,7 +171,7 @@ update msg model =
         TextInput task input ->
             Meld.init model
                 |> Meld.addTasks [ task input ]
-                |> Meld.send Results (\_ -> model.actions) (\ac -> { model | actions = model.actions + ac })
+                |> Meld.send Results
 
 
 subscriptions : Model -> Sub Msg

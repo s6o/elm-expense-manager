@@ -16,8 +16,8 @@ import Task exposing (Task)
     * IgnoreKey - ignore a keypress due to not matching an expected key code
     * Mdl - forward elm-mdl library messages
     * Requests - feed HTTP requests to Elm's runtime in undetermined order
-    * Responses - process results from `Requests`
-    * Results - process results from `Act` and `ActSeq`
+    * Responses - process results from 'Requests'
+    * Results - process results from 'Act' and 'ActSeq' and 'TextInput'
     * SelectTab - main tab selection
     * TextInput - process text input from fields
 
@@ -28,7 +28,7 @@ type Msg
     | IgnoreKey
     | Mdl (Material.Msg Msg)
     | Request (List (Meld Model Error Msg -> Task Error (Meld Model Error Msg)))
-    | Responses Int (Result Error (Meld Model Error Msg))
-    | Results Int (Result Error (Meld Model Error Msg))
+    | Responses (Result Error (Meld Model Error Msg))
+    | Results (Result Error (Meld Model Error Msg))
     | SelectTab String
     | TextInput (String -> Meld Model Error Msg -> Task Error (Meld Model Error Msg)) String
