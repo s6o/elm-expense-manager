@@ -14,7 +14,7 @@ import Dict
 import Manager.Auth as Auth
 import Manager.Currency as Currency
 import Manager.Jwt as Jwt
-import Manager.User as MUser
+import Manager.User as User
 import Material
 import Material.Layout as Layout
 import Meld exposing (Error(..))
@@ -38,7 +38,7 @@ init flags =
             , token = flags.token
             , auth = Auth.init
             , claims = Jwt.init flags.token
-            , user = MUser.init
+            , user = User.init
             , currency = Currency.init
             , accounts = Dict.empty
             , categories = Dict.empty
