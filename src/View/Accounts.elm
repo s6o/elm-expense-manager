@@ -4,21 +4,21 @@ module View.Accounts
         )
 
 import Api.Account
-import Dict
+import Dict exposing (Dict)
 import Html exposing (Html, div, text)
 import KeyEvent
 import Manager.Account as Account exposing (Account(..), FieldInput(..))
-import Manager.Currency as Currency
+import Manager.Currency as Currency exposing (Currency)
+import Material
 import Material.Button as Button
 import Material.Elevation as Elevation
 import Material.Options as Options exposing (css)
 import Material.Textfield as Textfield
 import Messages exposing (Msg(..))
-import Model exposing (Model)
 
 
-view : Model -> Html Msg
-view model =
+view : Material.Model -> Currency -> Dict Int Account -> Html Msg
+view mdl currency accounts =
     let
         -- 4 fields + 2 buttons: delete, save
         accountFields =
@@ -26,17 +26,18 @@ view model =
     in
     div
         []
-        ((model.accounts
+        ((accounts
             |> Dict.filter (\aid _ -> aid > Account.defaultId)
             |> Dict.values
-            |> List.indexedMap (\i rr -> account model (i * accountFields) rr)
+            |> List.indexedMap (\i rr -> account mdl currency (i * accountFields) rr)
          )
-            ++ (Dict.get 0 model.accounts
+            ++ (Dict.get 0 accounts
                     |> Maybe.map
                         (\account ->
                             [ addAccount
-                                (Dict.size model.accounts * accountFields)
-                                model
+                                mdl
+                                currency
+                                (Dict.size accounts * accountFields)
                                 account
                             ]
                         )
@@ -45,8 +46,8 @@ view model =
         )
 
 
-account : Model -> Int -> Account -> Html Msg
-account model baseIndex account =
+account : Material.Model -> Currency -> Int -> Account -> Html Msg
+account mdl currency baseIndex account =
     Options.div
         [ Elevation.e4
         , css "padding" "5px"
@@ -54,32 +55,33 @@ account model baseIndex account =
         [ Options.div
             []
             [ nameField
+                mdl
                 (baseIndex + 0)
-                model
                 account
                 (Request [ Api.Account.save (Account.id account) ])
             ]
         , Options.div
             []
             [ balanceField
+                mdl
+                currency
                 (baseIndex + 1)
-                model
                 account
                 (Request [ Api.Account.save (Account.id account) ])
             ]
         , Options.div
             []
             [ bankAccountField
+                mdl
                 (baseIndex + 2)
-                model
                 account
                 (Request [ Api.Account.save (Account.id account) ])
             ]
         , Options.div
             []
             [ bankNameField
+                mdl
                 (baseIndex + 3)
-                model
                 account
                 (Request [ Api.Account.save (Account.id account) ])
             ]
@@ -93,7 +95,7 @@ account model baseIndex account =
                 ]
                 [ Button.render Mdl
                     [ baseIndex + 4 ]
-                    model.mdl
+                    mdl
                     [ Button.colored
                     , Button.raised
                     , Button.ripple
@@ -108,7 +110,7 @@ account model baseIndex account =
                 ]
                 [ Button.render Mdl
                     [ baseIndex + 5 ]
-                    model.mdl
+                    mdl
                     [ Button.colored
                     , Button.raised
                     , Button.ripple
@@ -120,11 +122,11 @@ account model baseIndex account =
         ]
 
 
-nameField : Int -> Model -> Account -> Msg -> Html Msg
-nameField index model account action =
+nameField : Material.Model -> Int -> Account -> Msg -> Html Msg
+nameField mdl index account action =
     Textfield.render Mdl
         [ index ]
-        model.mdl
+        mdl
         [ Textfield.label "Name"
         , Textfield.floatingLabel
         , css "width" "100%"
@@ -139,11 +141,11 @@ nameField index model account action =
         []
 
 
-balanceField : Int -> Model -> Account -> Msg -> Html Msg
-balanceField index model account action =
+balanceField : Material.Model -> Currency -> Int -> Account -> Msg -> Html Msg
+balanceField mdl currency index account action =
     Textfield.render Mdl
         [ index ]
-        model.mdl
+        mdl
         [ Textfield.label "Initial balance"
         , Textfield.floatingLabel
         , css "width" "100%"
@@ -153,11 +155,11 @@ balanceField index model account action =
                     (Account drec) =
                         account
                  in
-                 Currency.validateAmount model.currency (Account.initialBalance model.currency account)
+                 Currency.validateAmount currency (Account.initialBalance currency account)
                     |> Maybe.map (\_ -> False)
                     |> Maybe.withDefault True
                 )
-        , Account.initialBalance model.currency account
+        , Account.initialBalance currency account
             |> Textfield.value
         , TextInput (Account.fieldInput Collect (Account.id account) "initial_balance")
             |> Options.onInput
@@ -166,11 +168,11 @@ balanceField index model account action =
         []
 
 
-bankAccountField : Int -> Model -> Account -> Msg -> Html Msg
-bankAccountField index model account action =
+bankAccountField : Material.Model -> Int -> Account -> Msg -> Html Msg
+bankAccountField mdl index account action =
     Textfield.render Mdl
         [ index ]
-        model.mdl
+        mdl
         [ Textfield.label "Bank account number"
         , Textfield.floatingLabel
         , css "width" "100%"
@@ -183,11 +185,11 @@ bankAccountField index model account action =
         []
 
 
-bankNameField : Int -> Model -> Account -> Msg -> Html Msg
-bankNameField index model account action =
+bankNameField : Material.Model -> Int -> Account -> Msg -> Html Msg
+bankNameField mdl index account action =
     Textfield.render Mdl
         [ index ]
-        model.mdl
+        mdl
         [ Textfield.label "Bank name"
         , Textfield.floatingLabel
         , css "width" "100%"
@@ -200,8 +202,8 @@ bankNameField index model account action =
         []
 
 
-addAccount : Int -> Model -> Account -> Html Msg
-addAccount index model account =
+addAccount : Material.Model -> Currency -> Int -> Account -> Html Msg
+addAccount mdl currency index account =
     Options.div
         [ Elevation.e4
         , css "padding" "5px"
@@ -209,32 +211,33 @@ addAccount index model account =
         [ Options.div
             []
             [ nameField
+                mdl
                 (index + 1)
-                model
                 account
                 (Request [ Api.Account.add ])
             ]
         , Options.div
             []
             [ balanceField
+                mdl
+                currency
                 (index + 2)
-                model
                 account
                 (Request [ Api.Account.add ])
             ]
         , Options.div
             []
             [ bankAccountField
+                mdl
                 (index + 3)
-                model
                 account
                 (Request [ Api.Account.add ])
             ]
         , Options.div
             []
             [ bankNameField
+                mdl
                 (index + 4)
-                model
                 account
                 (Request [ Api.Account.add ])
             ]
@@ -244,7 +247,7 @@ addAccount index model account =
             ]
             [ Button.render Mdl
                 [ index + 5 ]
-                model.mdl
+                mdl
                 [ Button.colored
                 , Button.raised
                 , Button.ripple

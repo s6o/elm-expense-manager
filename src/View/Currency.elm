@@ -3,17 +3,17 @@ module View.Currency exposing (view)
 import Api.Currency
 import Html exposing (Html, div, text)
 import KeyEvent
-import Manager.Currency as Currency
+import Manager.Currency as Currency exposing (Currency)
+import Material
 import Material.Button as Button
 import Material.Elevation as Elevation
 import Material.Options as Options exposing (css)
 import Material.Textfield as Textfield
 import Messages exposing (Msg(..))
-import Model exposing (Model)
 
 
-view : Model -> Html Msg
-view model =
+view : Material.Model -> Currency -> Html Msg
+view mdl currency =
     Options.div
         [ Elevation.e4
         , css "padding" "5px"
@@ -22,15 +22,15 @@ view model =
             []
             [ Textfield.render Mdl
                 [ 0 ]
-                model.mdl
+                mdl
                 [ Textfield.label "ISO Code"
                 , Textfield.autofocus
                 , Textfield.floatingLabel
                 , Textfield.maxlength 3
                 , Textfield.error "Required, 3 characters"
-                    |> Options.when (String.length (Currency.isoCode model.currency) /= 3)
+                    |> Options.when (String.length (Currency.isoCode currency) /= 3)
                 , css "width" "100%"
-                , Currency.isoCode model.currency
+                , Currency.isoCode currency
                     |> Textfield.value
                 , TextInput (Currency.fieldInput "iso_code")
                     |> Options.onInput
@@ -42,13 +42,13 @@ view model =
             []
             [ Textfield.render Mdl
                 [ 1 ]
-                model.mdl
+                mdl
                 [ Textfield.label "Sub Unit Ratio"
                 , Textfield.floatingLabel
                 , Textfield.error "Required, an integer value > 0"
-                    |> Options.when (Currency.subUnitRatio model.currency <= 0)
+                    |> Options.when (Currency.subUnitRatio currency <= 0)
                 , css "width" "100%"
-                , Currency.subUnitRatio model.currency
+                , Currency.subUnitRatio currency
                     |> Basics.toString
                     |> Textfield.value
                 , TextInput (Currency.fieldInput "sub_unit_ratio")
@@ -61,12 +61,12 @@ view model =
             []
             [ Textfield.render Mdl
                 [ 2 ]
-                model.mdl
+                mdl
                 [ Textfield.label "Symbol"
                 , Textfield.floatingLabel
                 , Textfield.maxlength 3
                 , css "width" "100%"
-                , Currency.symbol model.currency
+                , Currency.symbol currency
                     |> Textfield.value
                 , TextInput (Currency.fieldInput "symbol")
                     |> Options.onInput
@@ -78,12 +78,12 @@ view model =
             []
             [ Textfield.render Mdl
                 [ 3 ]
-                model.mdl
+                mdl
                 [ Textfield.label "Decimal Separator"
                 , Textfield.floatingLabel
                 , Textfield.maxlength 1
                 , css "width" "100%"
-                , Currency.decimalSeparator model.currency
+                , Currency.decimalSeparator currency
                     |> Textfield.value
                 , TextInput (Currency.fieldInput "decimal_separator")
                     |> Options.onInput
@@ -95,12 +95,12 @@ view model =
             []
             [ Textfield.render Mdl
                 [ 4 ]
-                model.mdl
+                mdl
                 [ Textfield.label "Thousand Separator"
                 , Textfield.floatingLabel
                 , Textfield.maxlength 1
                 , css "width" "100%"
-                , Currency.thousandSeparator model.currency
+                , Currency.thousandSeparator currency
                     |> Textfield.value
                 , TextInput (Currency.fieldInput "thousand_separator")
                     |> Options.onInput
@@ -114,7 +114,7 @@ view model =
             ]
             [ Button.render Mdl
                 [ 5 ]
-                model.mdl
+                mdl
                 [ Button.colored
                 , Button.raised
                 , Button.ripple

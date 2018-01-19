@@ -119,19 +119,19 @@ routeLayout model =
                         []
 
                     Login ->
-                        [ Login.view model
+                        [ Login.view model.mdl model.auth
                         ]
 
                     Logout ->
-                        [ Logout.view model
+                        [ Logout.view model.mdl model.token
                         ]
 
                     Currency ->
-                        [ Currency.view model
+                        [ Currency.view model.mdl model.currency
                         ]
 
                     Accounts ->
-                        [ Accounts.view model
+                        [ Accounts.view model.mdl model.currency model.accounts
                         ]
 
                     Categories ->
