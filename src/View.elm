@@ -6,6 +6,7 @@ module View
 import Dict exposing (Dict)
 import Html exposing (Html, div, input, text)
 import Html.Attributes exposing (style, type_, value)
+import Html.Lazy exposing (lazy2, lazy3)
 import Material.Color as Color
 import Material.Elevation as Elevation
 import Material.Layout as Layout
@@ -119,19 +120,19 @@ routeLayout model =
                         []
 
                     Login ->
-                        [ Login.view model.mdl model.auth
+                        [ lazy2 Login.view model.mdl model.auth
                         ]
 
                     Logout ->
-                        [ Logout.view model.mdl model.token
+                        [ lazy2 Logout.view model.mdl model.token
                         ]
 
                     Currency ->
-                        [ Currency.view model.mdl model.currency
+                        [ lazy2 Currency.view model.mdl model.currency
                         ]
 
                     Accounts ->
-                        [ Accounts.view model.mdl model.currency model.accounts
+                        [ lazy3 Accounts.view model.mdl model.currency model.accounts
                         ]
 
                     Categories ->
