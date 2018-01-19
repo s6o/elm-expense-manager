@@ -57,15 +57,20 @@ pass (Auth drec) =
         |> Result.withDefault ""
 
 
-fieldInput : String -> Parent m -> String -> ( Parent m, Cmd msg )
-fieldInput field model value =
+fieldInput : String -> String -> Meld (Parent m) Error msg -> Task Error (Meld (Parent m) Error msg)
+fieldInput field value meld =
     let
+        model =
+            Meld.model meld
+
         (Auth drec) =
             model.auth
+
+        taskModel ma =
+            { ma | auth = DRec.setString field value drec |> Auth }
     in
-    ( { model | auth = DRec.setString field value drec |> Auth }
-    , Cmd.none
-    )
+    Meld.withMerge taskModel meld
+        |> Task.succeed
 
 
 validate : Meld (Parent m) Error msg -> Task Error (Meld (Parent m) Error msg)

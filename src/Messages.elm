@@ -31,4 +31,4 @@ type Msg
     | Responses Int (Result Error (Meld Model Error Msg))
     | Results Int (Result Error (Meld Model Error Msg))
     | SelectTab String
-    | TextInput (Model -> String -> ( Model, Cmd Msg )) Model String
+    | TextInput (String -> Meld Model Error Msg -> Task Error (Meld Model Error Msg)) String

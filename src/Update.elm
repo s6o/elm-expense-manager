@@ -180,8 +180,10 @@ update msg model =
                     , Navigation.modifyUrl (Route.defaultRoute model.token |> Route.toFragment)
                     )
 
-        TextInput updateFn m v ->
-            updateFn { m | errors = Nothing, messages = Nothing } v
+        TextInput task input ->
+            Meld.init model
+                |> Meld.addTasks [ task input ]
+                |> Meld.send Results (\_ -> model.actions) (\ac -> { model | actions = model.actions + ac })
 
 
 subscriptions : Model -> Sub Msg

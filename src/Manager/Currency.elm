@@ -77,27 +77,35 @@ thousandSeparator (Currency drec) =
         |> Result.withDefault ""
 
 
-fieldInput : String -> Parent m -> String -> ( Parent m, Cmd msg )
-fieldInput field model value =
+fieldInput : String -> String -> Meld (Parent m) Error msg -> Task Error (Meld (Parent m) Error msg)
+fieldInput field value meld =
     let
+        model =
+            Meld.model meld
+
         (Currency drec) =
             model.currency
     in
-    case field of
-        "sub_unit_ratio" ->
-            String.toInt value
-                |> Result.map
-                    (\i ->
-                        ( { model | currency = DRec.setInt field i drec |> Currency }
-                        , Cmd.none
+    Task.succeed <|
+        case field of
+            "sub_unit_ratio" ->
+                String.toInt value
+                    |> Result.map
+                        (\i ->
+                            let
+                                taskModel ma =
+                                    { ma | currency = DRec.setInt field i drec |> Currency }
+                            in
+                            Meld.withMerge taskModel meld
                         )
-                    )
-                |> Result.withDefault ( model, Cmd.none )
+                    |> Result.withDefault meld
 
-        _ ->
-            ( { model | currency = DRec.setString field value drec |> Currency }
-            , Cmd.none
-            )
+            _ ->
+                let
+                    taskModel ma =
+                        { ma | currency = DRec.setString field value drec |> Currency }
+                in
+                Meld.withMerge taskModel meld
 
 
 locale : Currency -> Locale

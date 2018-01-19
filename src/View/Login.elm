@@ -33,7 +33,7 @@ view model =
                 , css "width" "100%"
                 , Auth.email model.auth
                     |> Textfield.value
-                , TextInput (Auth.fieldInput "email") model
+                , TextInput (Auth.fieldInput "email")
                     |> Options.onInput
                 , KeyEvent.onEnter <| Request [ Api.Auth.login ]
                 ]
@@ -50,7 +50,7 @@ view model =
                 , css "width" "100%"
                 , Auth.pass model.auth
                     |> Textfield.value
-                , TextInput (Auth.fieldInput "pass") model
+                , TextInput (Auth.fieldInput "pass")
                     |> Options.onInput
                 , KeyEvent.onEnter <| Request [ Api.Auth.login ]
                 ]

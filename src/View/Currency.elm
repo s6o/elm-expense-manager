@@ -1,7 +1,6 @@
 module View.Currency exposing (view)
 
 import Api.Currency
-import DRec
 import Html exposing (Html, div, text)
 import KeyEvent
 import Manager.Currency as Currency
@@ -33,7 +32,7 @@ view model =
                 , css "width" "100%"
                 , Currency.isoCode model.currency
                     |> Textfield.value
-                , TextInput (Currency.fieldInput "iso_code") model
+                , TextInput (Currency.fieldInput "iso_code")
                     |> Options.onInput
                 , KeyEvent.onEnter <| Request [ Api.Currency.save ]
                 ]
@@ -52,7 +51,7 @@ view model =
                 , Currency.subUnitRatio model.currency
                     |> Basics.toString
                     |> Textfield.value
-                , TextInput (Currency.fieldInput "sub_unit_ratio") model
+                , TextInput (Currency.fieldInput "sub_unit_ratio")
                     |> Options.onInput
                 , KeyEvent.onEnter <| Request [ Api.Currency.save ]
                 ]
@@ -69,7 +68,7 @@ view model =
                 , css "width" "100%"
                 , Currency.symbol model.currency
                     |> Textfield.value
-                , TextInput (Currency.fieldInput "symbol") model
+                , TextInput (Currency.fieldInput "symbol")
                     |> Options.onInput
                 , KeyEvent.onEnter <| Request [ Api.Currency.save ]
                 ]
@@ -86,7 +85,7 @@ view model =
                 , css "width" "100%"
                 , Currency.decimalSeparator model.currency
                     |> Textfield.value
-                , TextInput (Currency.fieldInput "decimal_separator") model
+                , TextInput (Currency.fieldInput "decimal_separator")
                     |> Options.onInput
                 , KeyEvent.onEnter <| Request [ Api.Currency.save ]
                 ]
@@ -103,7 +102,7 @@ view model =
                 , css "width" "100%"
                 , Currency.thousandSeparator model.currency
                     |> Textfield.value
-                , TextInput (Currency.fieldInput "thousand_separator") model
+                , TextInput (Currency.fieldInput "thousand_separator")
                     |> Options.onInput
                 , KeyEvent.onEnter <| Request [ Api.Currency.save ]
                 ]

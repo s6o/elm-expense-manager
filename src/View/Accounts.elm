@@ -132,7 +132,7 @@ nameField index model account action =
             |> Options.when (String.length (Account.name account) <= 0)
         , Account.name account
             |> Textfield.value
-        , TextInput (Account.fieldInput Validate (Account.id account) "name") model
+        , TextInput (Account.fieldInput Validate (Account.id account) "name")
             |> Options.onInput
         , KeyEvent.onEnter action
         ]
@@ -159,7 +159,7 @@ balanceField index model account action =
                 )
         , Account.initialBalance model.currency account
             |> Textfield.value
-        , TextInput (Account.fieldInput Collect (Account.id account) "initial_balance") model
+        , TextInput (Account.fieldInput Collect (Account.id account) "initial_balance")
             |> Options.onInput
         , KeyEvent.onEnter action
         ]
@@ -176,7 +176,7 @@ bankAccountField index model account action =
         , css "width" "100%"
         , Account.bankAccount account
             |> Textfield.value
-        , TextInput (Account.fieldInput Validate (Account.id account) "bank_account") model
+        , TextInput (Account.fieldInput Validate (Account.id account) "bank_account")
             |> Options.onInput
         , KeyEvent.onEnter action
         ]
@@ -193,7 +193,7 @@ bankNameField index model account action =
         , css "width" "100%"
         , Account.bankName account
             |> Textfield.value
-        , TextInput (Account.fieldInput Validate (Account.id account) "bank_name") model
+        , TextInput (Account.fieldInput Validate (Account.id account) "bank_name")
             |> Options.onInput
         , KeyEvent.onEnter action
         ]

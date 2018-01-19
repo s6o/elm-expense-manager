@@ -113,20 +113,26 @@ bankName (Account drec) =
         |> Result.withDefault ""
 
 
-fieldInput : FieldInput -> Int -> String -> Parent m -> String -> ( Parent m, Cmd msg )
-fieldInput action accountId field model value =
+fieldInput : FieldInput -> Int -> String -> String -> Meld (Parent m) Error msg -> Task Error (Meld (Parent m) Error msg)
+fieldInput action accountId field value meld =
+    let
+        model =
+            Meld.model meld
+    in
     Dict.get accountId model.accounts
         |> Maybe.map
             (\(Account drec) ->
                 let
                     newDRec =
                         update action field model.currency drec value
+
+                    taskModel ma =
+                        { ma | accounts = Dict.insert accountId (Account newDRec) ma.accounts }
                 in
-                ( { model | accounts = Dict.insert accountId (Account newDRec) model.accounts }
-                , Cmd.none
-                )
+                Meld.withMerge taskModel meld
+                    |> Task.succeed
             )
-        |> Maybe.withDefault ( model, Cmd.none )
+        |> Maybe.withDefault (Task.succeed meld)
 
 
 update : FieldInput -> String -> Currency -> DRec -> String -> DRec
