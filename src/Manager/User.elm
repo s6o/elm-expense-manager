@@ -1,6 +1,7 @@
 module Manager.User
     exposing
         ( User(..)
+        , UserField(..)
         , init
         , managerId
         )
@@ -9,21 +10,28 @@ import DRec exposing (DError, DRec, DType(..))
 
 
 type User
-    = User DRec
+    = User (DRec UserField)
+
+
+type UserField
+    = PkId
+    | Email
+    | Name
+    | Lang
 
 
 init : User
 init =
     DRec.init
-        |> DRec.field "pk_id" DInt
-        |> DRec.field "email" DString
-        |> DRec.field "name" DString
-        |> DRec.field "lang" DString
+        |> DRec.field PkId DInt
+        |> DRec.field Email DString
+        |> DRec.field Name DString
+        |> DRec.field Lang DString
         |> User
 
 
 managerId : User -> Int
 managerId (User drec) =
-    DRec.get "pk_id" drec
+    DRec.get PkId drec
         |> DRec.toInt
         |> Result.withDefault 0

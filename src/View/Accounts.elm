@@ -134,7 +134,7 @@ nameField mdl index account action =
             |> Options.when (String.length (Account.name account) <= 0)
         , Account.name account
             |> Textfield.value
-        , TextInput (Account.fieldInput Validate (Account.id account) "name")
+        , TextInput (Account.fieldInput Validate (Account.id account) Account.Name)
             |> Options.onInput
         , KeyEvent.onEnter action
         ]
@@ -161,7 +161,7 @@ balanceField mdl currency index account action =
                 )
         , Account.initialBalance currency account
             |> Textfield.value
-        , TextInput (Account.fieldInput Collect (Account.id account) "initial_balance")
+        , TextInput (Account.fieldInput Collect (Account.id account) Account.InitialBalance)
             |> Options.onInput
         , KeyEvent.onEnter action
         ]
@@ -178,7 +178,7 @@ bankAccountField mdl index account action =
         , css "width" "100%"
         , Account.bankAccount account
             |> Textfield.value
-        , TextInput (Account.fieldInput Validate (Account.id account) "bank_account")
+        , TextInput (Account.fieldInput Validate (Account.id account) Account.BankAccount)
             |> Options.onInput
         , KeyEvent.onEnter action
         ]
@@ -195,7 +195,7 @@ bankNameField mdl index account action =
         , css "width" "100%"
         , Account.bankName account
             |> Textfield.value
-        , TextInput (Account.fieldInput Validate (Account.id account) "bank_name")
+        , TextInput (Account.fieldInput Validate (Account.id account) Account.BankName)
             |> Options.onInput
         , KeyEvent.onEnter action
         ]

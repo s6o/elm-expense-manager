@@ -33,7 +33,7 @@ view mdl auth =
                 , css "width" "100%"
                 , Auth.email auth
                     |> Textfield.value
-                , TextInput (Auth.fieldInput "email")
+                , TextInput (Auth.fieldInput Auth.Email)
                     |> Options.onInput
                 , KeyEvent.onEnter <| Request [ Api.Auth.login ]
                 ]
@@ -50,7 +50,7 @@ view mdl auth =
                 , css "width" "100%"
                 , Auth.pass auth
                     |> Textfield.value
-                , TextInput (Auth.fieldInput "pass")
+                , TextInput (Auth.fieldInput Auth.Pass)
                     |> Options.onInput
                 , KeyEvent.onEnter <| Request [ Api.Auth.login ]
                 ]

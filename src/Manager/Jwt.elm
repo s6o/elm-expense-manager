@@ -1,6 +1,7 @@
 module Manager.Jwt
     exposing
         ( Jwt(..)
+        , JwtField(..)
         , init
         , userId
         )
@@ -17,7 +18,14 @@ import DRec exposing (DError, DRec, DType(..))
 
 
 type Jwt
-    = Jwt DRec
+    = Jwt (DRec JwtField)
+
+
+type JwtField
+    = Role
+    | Uid
+    | Email
+    | Exp
 
 
 {-| @private
@@ -26,16 +34,16 @@ Claims as constructed by PostgREST
 claims : Jwt
 claims =
     DRec.init
-        |> DRec.field "role" DString
-        |> DRec.field "uid" DInt
-        |> DRec.field "email" DString
-        |> DRec.field "exp" DInt
+        |> DRec.field Role DString
+        |> DRec.field Uid DInt
+        |> DRec.field Email DString
+        |> DRec.field Exp DInt
         |> Jwt
 
 
 userId : Jwt -> Int
 userId (Jwt drec) =
-    DRec.get "uid" drec
+    DRec.get Uid drec
         |> DRec.toInt
         |> Result.withDefault 0
 

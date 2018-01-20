@@ -1,6 +1,7 @@
 module Manager.Currency
     exposing
         ( Currency(..)
+        , CurrencyField(..)
         , decimalSeparator
         , fieldInput
         , init
@@ -28,56 +29,64 @@ type alias Parent m =
 
 
 type Currency
-    = Currency DRec
+    = Currency (DRec CurrencyField)
+
+
+type CurrencyField
+    = IsoCode
+    | SubUnitRatio
+    | Symbol
+    | DecimalSeparator
+    | ThousandSeparator
 
 
 init : Currency
 init =
     DRec.init
-        |> DRec.field "iso_code" DString
-        |> DRec.field "sub_unit_ratio" DInt
-        |> DRec.field "symbol" DString
-        |> DRec.field "decimal_separator" DString
-        |> DRec.field "thousand_separator" DString
+        |> DRec.field IsoCode DString
+        |> DRec.field SubUnitRatio DInt
+        |> DRec.field Symbol DString
+        |> DRec.field DecimalSeparator DString
+        |> DRec.field ThousandSeparator DString
         |> Currency
 
 
 isoCode : Currency -> String
 isoCode (Currency drec) =
-    DRec.get "iso_code" drec
+    DRec.get IsoCode drec
         |> DRec.toString
         |> Result.withDefault ""
 
 
 subUnitRatio : Currency -> Int
 subUnitRatio (Currency drec) =
-    DRec.get "sub_unit_ratio" drec
+    DRec.get SubUnitRatio drec
         |> DRec.toInt
         |> Result.withDefault 1
 
 
 symbol : Currency -> String
 symbol (Currency drec) =
-    DRec.get "symbol" drec
+    DRec.get Symbol drec
         |> DRec.toString
         |> Result.withDefault ""
 
 
 decimalSeparator : Currency -> String
 decimalSeparator (Currency drec) =
-    DRec.get "decimal_separator" drec
+    DRec.get DecimalSeparator drec
         |> DRec.toString
         |> Result.withDefault ""
 
 
 thousandSeparator : Currency -> String
 thousandSeparator (Currency drec) =
-    DRec.get "thousand_separator" drec
+    DRec.get ThousandSeparator drec
         |> DRec.toString
         |> Result.withDefault ""
 
 
-fieldInput : String -> String -> Meld (Parent m) Error msg -> Task Error (Meld (Parent m) Error msg)
+fieldInput : CurrencyField -> String -> Meld (Parent m) Error msg -> Task Error (Meld (Parent m) Error msg)
 fieldInput field value meld =
     let
         model =
@@ -88,7 +97,7 @@ fieldInput field value meld =
     in
     Task.succeed <|
         case field of
-            "sub_unit_ratio" ->
+            SubUnitRatio ->
                 String.toInt value
                     |> Result.map
                         (\i ->

@@ -32,7 +32,7 @@ view mdl currency =
                 , css "width" "100%"
                 , Currency.isoCode currency
                     |> Textfield.value
-                , TextInput (Currency.fieldInput "iso_code")
+                , TextInput (Currency.fieldInput Currency.IsoCode)
                     |> Options.onInput
                 , KeyEvent.onEnter <| Request [ Api.Currency.save ]
                 ]
@@ -51,7 +51,7 @@ view mdl currency =
                 , Currency.subUnitRatio currency
                     |> Basics.toString
                     |> Textfield.value
-                , TextInput (Currency.fieldInput "sub_unit_ratio")
+                , TextInput (Currency.fieldInput Currency.SubUnitRatio)
                     |> Options.onInput
                 , KeyEvent.onEnter <| Request [ Api.Currency.save ]
                 ]
@@ -68,7 +68,7 @@ view mdl currency =
                 , css "width" "100%"
                 , Currency.symbol currency
                     |> Textfield.value
-                , TextInput (Currency.fieldInput "symbol")
+                , TextInput (Currency.fieldInput Currency.Symbol)
                     |> Options.onInput
                 , KeyEvent.onEnter <| Request [ Api.Currency.save ]
                 ]
@@ -85,7 +85,7 @@ view mdl currency =
                 , css "width" "100%"
                 , Currency.decimalSeparator currency
                     |> Textfield.value
-                , TextInput (Currency.fieldInput "decimal_separator")
+                , TextInput (Currency.fieldInput Currency.DecimalSeparator)
                     |> Options.onInput
                 , KeyEvent.onEnter <| Request [ Api.Currency.save ]
                 ]
@@ -102,7 +102,7 @@ view mdl currency =
                 , css "width" "100%"
                 , Currency.thousandSeparator currency
                     |> Textfield.value
-                , TextInput (Currency.fieldInput "thousand_separator")
+                , TextInput (Currency.fieldInput Currency.ThousandSeparator)
                     |> Options.onInput
                 , KeyEvent.onEnter <| Request [ Api.Currency.save ]
                 ]

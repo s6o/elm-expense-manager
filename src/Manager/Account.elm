@@ -1,6 +1,7 @@
 module Manager.Account
     exposing
         ( Account(..)
+        , AccountField(..)
         , FieldInput(..)
         , bankAccount
         , bankName
@@ -30,7 +31,16 @@ type alias Parent m =
 
 
 type Account
-    = Account DRec
+    = Account (DRec AccountField)
+
+
+type AccountField
+    = PkId
+    | MgrId
+    | Name
+    | InitialBalance
+    | BankAccount
+    | BankName
 
 
 type FieldInput
@@ -47,11 +57,11 @@ empty : Int -> Account
 empty managerId =
     init
         |> (\(Account drec) ->
-                DRec.setInt "mgr_id" managerId drec
-                    |> DRec.setString "name" "<name-your-account>"
-                    |> DRec.setInt "initial_balance" 0
-                    |> DRec.setWith "bank_account" (DRec.fromMaybe DRec.fromString >> Just) Nothing
-                    |> DRec.setWith "bank_name" (DRec.fromMaybe DRec.fromString >> Just) Nothing
+                DRec.setInt MgrId managerId drec
+                    |> DRec.setString Name "<name-your-account>"
+                    |> DRec.setInt InitialBalance 0
+                    |> DRec.setWith BankAccount (DRec.fromMaybe DRec.fromString >> Just) Nothing
+                    |> DRec.setWith BankName (DRec.fromMaybe DRec.fromString >> Just) Nothing
            )
         |> Account
 
@@ -59,34 +69,34 @@ empty managerId =
 init : Account
 init =
     DRec.init
-        |> DRec.field "pk_id" DInt
-        |> DRec.field "mgr_id" DInt
-        |> DRec.field "name" DString
-        |> DRec.field "initial_balance" DInt
-        |> DRec.field "bank_account" (DMaybe VString)
-        |> DRec.field "bank_name" (DMaybe VString)
+        |> DRec.field PkId DInt
+        |> DRec.field MgrId DInt
+        |> DRec.field Name DString
+        |> DRec.field InitialBalance DInt
+        |> DRec.field BankAccount (DMaybe VString)
+        |> DRec.field BankName (DMaybe VString)
         |> Account
 
 
 id : Account -> Int
 id (Account drec) =
-    DRec.get "pk_id" drec
+    DRec.get PkId drec
         |> DRec.toInt
         |> Result.withDefault 0
 
 
 name : Account -> String
 name (Account drec) =
-    DRec.get "name" drec
+    DRec.get Name drec
         |> DRec.toString
         |> Result.withDefault ""
 
 
 initialBalance : Currency -> Account -> String
 initialBalance currency (Account drec) =
-    DRec.fieldBuffer "initial_balance" drec
+    DRec.fieldBuffer InitialBalance drec
         |> Maybe.withDefault
-            (DRec.get "initial_balance" drec
+            (DRec.get InitialBalance drec
                 |> DRec.toInt
                 |> Result.withDefault 0
                 |> (\balance ->
@@ -101,19 +111,19 @@ initialBalance currency (Account drec) =
 
 bankAccount : Account -> String
 bankAccount (Account drec) =
-    DRec.get "bank_account" drec
+    DRec.get BankAccount drec
         |> DRec.toString
         |> Result.withDefault ""
 
 
 bankName : Account -> String
 bankName (Account drec) =
-    DRec.get "bank_name" drec
+    DRec.get BankName drec
         |> DRec.toString
         |> Result.withDefault ""
 
 
-fieldInput : FieldInput -> Int -> String -> String -> Meld (Parent m) Error msg -> Task Error (Meld (Parent m) Error msg)
+fieldInput : FieldInput -> Int -> AccountField -> String -> Meld (Parent m) Error msg -> Task Error (Meld (Parent m) Error msg)
 fieldInput action accountId field value meld =
     let
         model =
@@ -135,16 +145,16 @@ fieldInput action accountId field value meld =
         |> Maybe.withDefault (Task.succeed meld)
 
 
-update : FieldInput -> String -> Currency -> DRec -> String -> DRec
+update : FieldInput -> AccountField -> Currency -> DRec AccountField -> String -> DRec AccountField
 update action field currency account value =
     case field of
-        "initial_balance" ->
+        InitialBalance ->
             Currency.validateNumerics currency value
                 |> (\v ->
                         DRec.setWith field (validateBalance action currency) v account
                    )
 
-        "bank_account" ->
+        BankAccount ->
             let
                 mv =
                     if not <| String.isEmpty value then
@@ -154,7 +164,7 @@ update action field currency account value =
             in
             DRec.setWith field (DRec.fromMaybe DRec.fromString >> Just) mv account
 
-        "bank_name" ->
+        BankName ->
             let
                 mv =
                     if not <| String.isEmpty value then
@@ -168,7 +178,7 @@ update action field currency account value =
             DRec.setString field value account
 
 
-validateBalance : FieldInput -> Currency -> String -> Maybe DField
+validateBalance : FieldInput -> Currency -> String -> Maybe (DField a)
 validateBalance action currency value =
     case action of
         Collect ->

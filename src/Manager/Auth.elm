@@ -1,6 +1,7 @@
 module Manager.Auth
     exposing
         ( Auth(..)
+        , AuthField(..)
         , Token
         , decoder
         , email
@@ -22,7 +23,12 @@ type alias Parent m =
 
 
 type Auth
-    = Auth DRec
+    = Auth (DRec AuthField)
+
+
+type AuthField
+    = Email
+    | Pass
 
 
 type alias Token =
@@ -38,26 +44,26 @@ decoder =
 init : Auth
 init =
     DRec.init
-        |> DRec.field "email" DString
-        |> DRec.field "pass" DString
+        |> DRec.field Email DString
+        |> DRec.field Pass DString
         |> Auth
 
 
 email : Auth -> String
 email (Auth drec) =
-    DRec.get "email" drec
+    DRec.get Email drec
         |> DRec.toString
         |> Result.withDefault ""
 
 
 pass : Auth -> String
 pass (Auth drec) =
-    DRec.get "pass" drec
+    DRec.get Pass drec
         |> DRec.toString
         |> Result.withDefault ""
 
 
-fieldInput : String -> String -> Meld (Parent m) Error msg -> Task Error (Meld (Parent m) Error msg)
+fieldInput : AuthField -> String -> Meld (Parent m) Error msg -> Task Error (Meld (Parent m) Error msg)
 fieldInput field value meld =
     let
         model =
