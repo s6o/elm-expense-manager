@@ -135,29 +135,31 @@ type DValue
     | VString
 
 
-{-| A record with schema.
+{-| A record with schema, storge and input buffers.
 -}
-type DRec
+type DRec a
     = DRec
         { buffers : Dict String String
         , errors : Dict String DError
-        , fields : List String
+        , fields : List a
         , schema : Dict String DType
-        , store : Dict String DField
+        , sfields : List String
+        , store : Dict String (DField a)
+        , toField : a -> String
         }
 
 
 {-| `DRec` field name and `DType` mapping, see `field`.
 -}
-type DField
-    = DArray_ (Array DField)
+type DField a
+    = DArray_ (Array (DField a))
     | DBool_ Bool
-    | DDRec_ DRec
+    | DDRec_ (DRec a)
     | DFloat_ Float
     | DInt_ Int
     | DJson_ Json.Encode.Value
-    | DList_ (List DField)
-    | DMaybe_ (Maybe DField)
+    | DList_ (List (DField a))
+    | DMaybe_ (Maybe (DField a))
     | DString_ String
 
 
@@ -169,7 +171,7 @@ type DSchema
 
 {-| @private
 -}
-fieldType : String -> DField -> DRec -> DType
+fieldType : String -> DField a -> DRec a -> DType
 fieldType fname dfield (DRec r) =
     let
         schemaType =
@@ -191,7 +193,7 @@ fieldType fname dfield (DRec r) =
             DBool
 
         DDRec_ (DRec r) ->
-            DDRec (DSchema ( r.fields, r.schema ))
+            DDRec (DSchema ( r.sfields, r.schema ))
 
         DFloat_ _ ->
             DFloat
@@ -228,7 +230,7 @@ fieldType fname dfield (DRec r) =
 
 {-| @private
 -}
-fieldSubType : String -> DField -> DRec -> Maybe DValue
+fieldSubType : String -> DField a -> DRec a -> Maybe DValue
 fieldSubType fname dfield drec =
     case fieldType fname dfield drec of
         DBool ->
@@ -268,37 +270,60 @@ type DError
 
 {-| Initialize a `DRec` (without schema and data).
 -}
-init : DRec
+init : DRec a
 init =
     DRec
         { buffers = Dict.empty
         , errors = Dict.empty
         , fields = []
         , schema = Dict.empty
+        , sfields = []
         , store = Dict.empty
+        , toField = Basics.toString
         }
 
 
 {-| Define `DRec` schema when initializing your application's model member.
 
+    import DRec exposing (DRec, DType(..), DValue(..))
+
+    type Fields
+        = Id
+        | Email
+        | Name
+        | Token
+
+    type User
+        = User (DRec Fields)
+
+    init : User
+    init =
+        DRec.init
+            |> DRec.field Id DInt
+            |> DRec.field Email DString
+            |> DRec.field Name DString
+            |> DRec.field Token (DMaybe VString)
+            |> User
+
+
+    -- ...
+
     type alias Model =
-        { user : DRec
+        { user : User
         }
 
     init : Model
     init =
-        { user =
-            DRec.init
-                |> DRec.field "id" DInt
-                |> DRec.field "email" DString
-                |> DRec.field "name" DString
-                |> DRec.field "token" DMaybe VString
+        { user = User.init
         }
 
 -}
-field : String -> DType -> DRec -> DRec
-field field dtype (DRec r) =
+field : a -> DType -> DRec a -> DRec a
+field adt dtype (DRec r) =
     let
+        field =
+            r.toField adt
+
         typeError =
             Basics.toString dtype
                 |> InvalidSchemaType
@@ -310,7 +335,8 @@ field field dtype (DRec r) =
         Nothing ->
             DRec
                 { r
-                    | fields = r.fields ++ [ field ]
+                    | fields = r.fields ++ [ adt ]
+                    , sfields = r.sfields ++ [ r.toField adt ]
                     , schema = Dict.insert field dtype r.schema
                 }
 
@@ -327,49 +353,49 @@ field field dtype (DRec r) =
 
 {-| Remove all data (including input buffers and errors) from `DRec`, schema is not affected.
 -}
-clear : DRec -> DRec
+clear : DRec a -> DRec a
 clear (DRec r) =
     DRec { r | buffers = Dict.empty, errors = Dict.empty, store = Dict.empty }
 
 
 {-| Set a `Bool` value for specified `DRec` field.
 -}
-setBool : String -> Bool -> DRec -> DRec
+setBool : a -> Bool -> DRec a -> DRec a
 setBool field value drec =
     setWith field (fromBool >> Just) value drec
 
 
 {-| Set a sub `DRec` for spcified `DRec` field.
 -}
-setDRec : String -> DRec -> DRec -> DRec
+setDRec : a -> DRec a -> DRec a -> DRec a
 setDRec field value drec =
     setWith field (fromDRec >> Just) value drec
 
 
 {-| Set a `Float` value for specified `DRec` field.
 -}
-setFloat : String -> Float -> DRec -> DRec
+setFloat : a -> Float -> DRec a -> DRec a
 setFloat field value drec =
     setWith field (fromFloat >> Just) value drec
 
 
 {-| Set a `Int` value for specified `DRec` field.
 -}
-setInt : String -> Int -> DRec -> DRec
+setInt : a -> Int -> DRec a -> DRec a
 setInt field value drec =
     setWith field (fromInt >> Just) value drec
 
 
 {-| Set a `Json.Encode.Value` value for specified `DRec` field.
 -}
-setJson : String -> Json.Encode.Value -> DRec -> DRec
+setJson : a -> Json.Encode.Value -> DRec a -> DRec a
 setJson field value drec =
     setWith field (fromJson >> Just) value drec
 
 
 {-| Set a `String` value for specified `DRec` field.
 -}
-setString : String -> String -> DRec -> DRec
+setString : a -> String -> DRec a -> DRec a
 setString field value drec =
     setWith field (fromString >> Just) value drec
 
@@ -381,21 +407,34 @@ input buffer and an error is set for the specified field.
 
 For quering the error and input buffer use `fieldError` and `fieldBuffer` respectively.
 
+    import User exposing (User(..), Fields(..))
+
     update : Msg -> Model -> (Model, Cmd Msg)
     update msg model =
+        let
+            (User drec) =
+                model.user
+        in
         Name str ->
-            ( { model | user = DRec.setString "name" str model.user }
+            ( { model | user = DRec.setString User.Name str drec |> User }
             , Cmd.none
             )
 
         Token mstr ->
-            ( { model | user = DRec.setWith "token" (DRec.fromMaybe DRec.fromString >> Just) mstr model.user}
+            ( { model | user = DRec.setWith User.Token (DRec.fromMaybe DRec.fromString >> Just) mstr drec |> User }
             , Cmd.none
             )
 
 -}
-setWith : String -> (a -> Maybe DField) -> a -> DRec -> DRec
-setWith field toValue value (DRec r) =
+setWith : a -> (b -> Maybe (DField a)) -> b -> DRec a -> DRec a
+setWith adt toValue value (DRec r) =
+    setWithP (r.toField adt) toValue value (DRec r)
+
+
+{-| @private
+-}
+setWithP : String -> (b -> Maybe (DField a)) -> b -> DRec a -> DRec a
+setWithP field toValue value (DRec r) =
     let
         setError bufferFlag de =
             case bufferFlag of
@@ -483,7 +522,7 @@ derrorString derror =
 
 {-| Get all errors messages as a single string.
 -}
-errorMessages : DRec -> Maybe String
+errorMessages : DRec a -> Maybe String
 errorMessages (DRec r) =
     if Dict.isEmpty r.errors then
         Nothing
@@ -499,30 +538,34 @@ errorMessages (DRec r) =
 
 {-| Query field's input buffer.
 -}
-fieldBuffer : String -> DRec -> Maybe String
-fieldBuffer field (DRec r) =
-    Dict.get field r.buffers
+fieldBuffer : a -> DRec a -> Maybe String
+fieldBuffer adt (DRec r) =
+    Dict.get (r.toField adt) r.buffers
 
 
 {-| Query error message for a field.
 -}
-fieldError : String -> DRec -> Maybe String
-fieldError field (DRec r) =
-    Dict.get field r.errors
+fieldError : a -> DRec a -> Maybe String
+fieldError adt (DRec r) =
+    Dict.get (r.toField adt) r.errors
         |> Maybe.map derrorString
 
 
 {-| Get field names in the order they were defined.
 -}
-fieldNames : DRec -> List String
+fieldNames : DRec a -> List a
 fieldNames (DRec r) =
     r.fields
 
 
 {-| For a valid field defined in schema return a value/type mapping.
 -}
-get : String -> DRec -> Result DError DField
-get field (DRec r) =
+get : a -> DRec a -> Result DError (DField a)
+get adt (DRec r) =
+    let
+        field =
+            r.toField adt
+    in
     case
         Dict.get field r.schema
     of
@@ -546,7 +589,7 @@ get field (DRec r) =
 
 {-| Check if a schema has been specified.
 -}
-hasSchema : DRec -> Bool
+hasSchema : DRec a -> Bool
 hasSchema (DRec r) =
     not <| Dict.isEmpty r.schema
 
@@ -555,7 +598,7 @@ hasSchema (DRec r) =
 A valid value is considered to be present if no input buffer for the field is
 set and the field itself actually contains a valid value.
 -}
-hasValue : String -> DRec -> Bool
+hasValue : a -> DRec a -> Bool
 hasValue field drec =
     fieldBuffer field drec
         |> Maybe.map (\_ -> False)
@@ -568,14 +611,14 @@ hasValue field drec =
 
 {-| Check is specified `DRec` contains data.
 -}
-isEmpty : DRec -> Bool
+isEmpty : DRec a -> Bool
 isEmpty (DRec r) =
     Dict.isEmpty r.store
 
 
 {-| Check if a record is valid: no errors and `hasValue` returns 'True' for every field.
 -}
-isValid : DRec -> Bool
+isValid : DRec a -> Bool
 isValid (DRec r) =
     isValidWith r.fields (DRec r)
 
@@ -583,7 +626,7 @@ isValid (DRec r) =
 {-| Check if a record is valid for specified fields: no errors and `hasValue`
 returns 'True' for every listed field.
 -}
-isValidWith : List String -> DRec -> Bool
+isValidWith : List a -> DRec a -> Bool
 isValidWith fields (DRec r) =
     fields
         |> List.foldl
@@ -593,32 +636,41 @@ isValidWith fields (DRec r) =
 
 {-| Query `DRec` schema.
 
-    address : DRec
-    address =
-        DRec.init
-            |> DRec.field "street_name" DString
-            |> DRec.field "building_number" DInt
-            |> DRec.field "sub_number" (DMaybe DInt)
+    type AddressFields
+        = SteetName
+        | BuildingNumber
+        | SubNumber
 
-    person : DRec
+    type PersonFields
+        = Name
+        | Address
+
+    address : DRec AddressFields
+    address =
+        DRec.init AddressFields
+            |> DRec.field StreetName DString
+            |> DRec.field BuildingNumber DInt
+            |> DRec.field SubNumber (DMaybe DInt)
+
+    person : DRec PersonFields
     person =
-        DRec.init
-            |> DRec.field "name" DString
-            |> DRec.field "address" (DDRec <| DRec.schema address)
+        DRec.init PersonFields
+            |> DRec.field Name DString
+            |> DRec.field Address (DDRec <| DRec.schema address)
 
 -}
-schema : DRec -> DSchema
+schema : DRec a -> DSchema
 schema (DRec r) =
-    DSchema ( r.fields, r.schema )
+    DSchema ( r.sfields, r.schema )
 
 
 
 -- ENCODE
 
 
-{-| Convert from `Array a` to DField.
+{-| Convert from `Array b` to DField.
 -}
-fromArray : (a -> DField) -> Array a -> DField
+fromArray : (b -> DField a) -> Array b -> DField a
 fromArray f v =
     Array.map f v
         |> DArray_
@@ -626,50 +678,50 @@ fromArray f v =
 
 {-| Convert from `Bool` to `DField`.
 -}
-fromBool : Bool -> DField
+fromBool : Bool -> DField a
 fromBool v =
     DBool_ v
 
 
 {-| Convert from `DRec` to `DField`.
 -}
-fromDRec : DRec -> DField
+fromDRec : DRec a -> DField a
 fromDRec v =
     DDRec_ v
 
 
 {-| Convert from `Float` to `DField`.
 -}
-fromFloat : Float -> DField
+fromFloat : Float -> DField a
 fromFloat v =
     DFloat_ v
 
 
 {-| Convert from `Int` to `DField`.
 -}
-fromInt : Int -> DField
+fromInt : Int -> DField a
 fromInt v =
     DInt_ v
 
 
 {-| Convert from `Json.Encode.Value` to `DField`.
 -}
-fromJson : Json.Encode.Value -> DField
+fromJson : Json.Encode.Value -> DField a
 fromJson v =
     DJson_ v
 
 
-{-| Convert from `List a` to DField.
+{-| Convert from `List b` to DField.
 -}
-fromList : (a -> DField) -> List a -> DField
+fromList : (b -> DField a) -> List b -> DField a
 fromList f v =
     List.map f v
         |> DList_
 
 
-{-| Convert from `Maybe a` to `DField`.
+{-| Convert from `Maybe b` to `DField`.
 -}
-fromMaybe : (a -> DField) -> Maybe a -> DField
+fromMaybe : (b -> DField a) -> Maybe b -> DField a
 fromMaybe f mv =
     case mv of
         Nothing ->
@@ -681,7 +733,7 @@ fromMaybe f mv =
 
 {-| Convert from `String` to `DField`.
 -}
-fromString : String -> DField
+fromString : String -> DField a
 fromString v =
     DString_ v
 
@@ -690,9 +742,9 @@ fromString v =
 -- DECODE
 
 
-{-| Convert from `DField` to `Array a`
+{-| Convert from `DField` to `Array b`
 -}
-toArray : (Result DError DField -> Result DError a) -> Result DError DField -> Result DError (Array a)
+toArray : (Result DError (DField a) -> Result DError b) -> Result DError (DField a) -> Result DError (Array b)
 toArray toValue rf =
     case rf of
         Err x ->
@@ -720,7 +772,7 @@ toArray toValue rf =
 
 {-| Convert from `DField` to `Bool`.
 -}
-toBool : Result DError DField -> Result DError Bool
+toBool : Result DError (DField a) -> Result DError Bool
 toBool rf =
     case rf of
         Err x ->
@@ -742,7 +794,7 @@ toBool rf =
 
 {-| Convert from `DField` to `DRec`.
 -}
-toDRec : Result DError DField -> Result DError DRec
+toDRec : Result DError (DField a) -> Result DError (DRec a)
 toDRec rf =
     case rf of
         Err x ->
@@ -764,7 +816,7 @@ toDRec rf =
 
 {-| Convert from `DField` to `Float`.
 -}
-toFloat : Result DError DField -> Result DError Float
+toFloat : Result DError (DField a) -> Result DError Float
 toFloat rf =
     case rf of
         Err x ->
@@ -786,7 +838,7 @@ toFloat rf =
 
 {-| Convert from `DField` to `Int`.
 -}
-toInt : Result DError DField -> Result DError Int
+toInt : Result DError (DField a) -> Result DError Int
 toInt rf =
     case rf of
         Err x ->
@@ -808,7 +860,7 @@ toInt rf =
 
 {-| Convert from `DField` to `Json.Encode.Value`.
 -}
-toJson : Result DError DField -> Result DError Json.Encode.Value
+toJson : Result DError (DField a) -> Result DError Json.Encode.Value
 toJson rf =
     case rf of
         Err x ->
@@ -828,9 +880,9 @@ toJson rf =
                         |> Err
 
 
-{-| Convert from `DField` to `List a`.
+{-| Convert from `DField` to `List b`.
 -}
-toList : (Result DError DField -> Result DError a) -> Result DError DField -> Result DError (List a)
+toList : (Result DError (DField a) -> Result DError b) -> Result DError (DField a) -> Result DError (List b)
 toList toValue rf =
     case rf of
         Err x ->
@@ -855,7 +907,7 @@ toList toValue rf =
                         |> Err
 
 
-{-| Convert from a `DField` of `DType` 'DMaybe a' to `Maybe a`.
+{-| Convert from a `DField` of `DType` 'DMaybe (DField a)' to `Maybe b`.
 
     rec : DRec
     rec =
@@ -872,7 +924,7 @@ toList toValue rf =
             |> DRec.toMaybe DRec.toString
 
 -}
-toMaybe : (Result DError DField -> Result DError a) -> Result DError DField -> Result DError (Maybe a)
+toMaybe : (Result DError (DField a) -> Result DError b) -> Result DError (DField a) -> Result DError (Maybe b)
 toMaybe toValue rf =
     case rf of
         Err x ->
@@ -900,7 +952,7 @@ toMaybe toValue rf =
 
 {-| Convert from `DField` to `String`.
 -}
-toString : Result DError DField -> Result DError String
+toString : Result DError (DField a) -> Result DError String
 toString rf =
     case rf of
         Err x ->
@@ -926,34 +978,33 @@ toString rf =
 
 {-| @private
 -}
-arrayDecoder : String -> DRec -> (a -> DField) -> Decoder (Array a) -> Decoder DRec
+arrayDecoder : String -> DRec a -> (b -> DField a) -> Decoder (Array b) -> Decoder (DRec a)
 arrayDecoder fname drec toItem decoder =
     decoder
         |> Json.Decode.field fname
-        |> Json.Decode.map (\v -> setWith fname (fromArray toItem >> Just) v drec)
+        |> Json.Decode.map (\v -> setWithP fname (fromArray toItem >> Just) v drec)
 
 
 {-| @private
 -}
-listDecoder : String -> DRec -> (a -> DField) -> Decoder (List a) -> Decoder DRec
+listDecoder : String -> DRec a -> (b -> DField a) -> Decoder (List b) -> Decoder (DRec a)
 listDecoder fname drec toItem decoder =
     decoder
         |> Json.Decode.field fname
-        |> Json.Decode.map (\v -> setWith fname (fromList toItem >> Just) v drec)
+        |> Json.Decode.map (\v -> setWithP fname (fromList toItem >> Just) v drec)
 
 
 {-| @private
 -}
-maybeDecoder : String -> DRec -> (a -> DField) -> Decoder (Maybe a) -> Decoder DRec
+maybeDecoder : String -> DRec a -> (b -> DField a) -> Decoder (Maybe b) -> Decoder (DRec a)
 maybeDecoder fname drec toItem decoder =
     decoder
-        |> Json.Decode.field fname
-        |> Json.Decode.map (\v -> setWith fname (fromMaybe toItem >> Just) v drec)
+        |> Json.Decode.map (\mv -> setWithP fname (fromMaybe toItem >> Just) mv drec)
 
 
 {-| @private
 -}
-fieldDecoder : String -> DType -> DRec -> Decoder DRec
+fieldDecoder : String -> DType -> DRec a -> Decoder (DRec a)
 fieldDecoder fname dtype drec =
     case dtype of
         DNever ->
@@ -971,9 +1022,11 @@ fieldDecoder fname dtype drec =
                             DRec
                                 { buffers = Dict.empty
                                 , errors = Dict.empty
-                                , fields = forder
+                                , fields = []
+                                , sfields = forder
                                 , schema = stypes
                                 , store = Dict.empty
+                                , toField = Basics.toString
                                 }
                     in
                     Json.Decode.array (subDecoder subRec)
@@ -997,7 +1050,7 @@ fieldDecoder fname dtype drec =
 
         DBool ->
             Json.Decode.field fname Json.Decode.bool
-                |> Json.Decode.map (\v -> setWith fname (fromBool >> Just) v drec)
+                |> Json.Decode.map (\v -> setWithP fname (fromBool >> Just) v drec)
 
         DDRec (DSchema ( forder, stypes )) ->
             let
@@ -1005,25 +1058,27 @@ fieldDecoder fname dtype drec =
                     DRec
                         { buffers = Dict.empty
                         , errors = Dict.empty
-                        , fields = forder
+                        , fields = []
+                        , sfields = forder
                         , schema = stypes
                         , store = Dict.empty
+                        , toField = Basics.toString
                         }
             in
             Json.Decode.field fname (subDecoder subRec)
-                |> Json.Decode.map (\v -> setWith fname (fromDRec >> Just) v drec)
+                |> Json.Decode.map (\v -> setWithP fname (fromDRec >> Just) v drec)
 
         DFloat ->
             Json.Decode.field fname Json.Decode.float
-                |> Json.Decode.map (\v -> setWith fname (fromFloat >> Just) v drec)
+                |> Json.Decode.map (\v -> setWithP fname (fromFloat >> Just) v drec)
 
         DInt ->
             Json.Decode.field fname Json.Decode.int
-                |> Json.Decode.map (\v -> setWith fname (fromInt >> Just) v drec)
+                |> Json.Decode.map (\v -> setWithP fname (fromInt >> Just) v drec)
 
         DJson ->
             Json.Decode.field fname Json.Decode.value
-                |> Json.Decode.map (\v -> setWith fname (fromJson >> Just) v drec)
+                |> Json.Decode.map (\v -> setWithP fname (fromJson >> Just) v drec)
 
         DList dvalue ->
             case dvalue of
@@ -1037,9 +1092,11 @@ fieldDecoder fname dtype drec =
                             DRec
                                 { buffers = Dict.empty
                                 , errors = Dict.empty
-                                , fields = forder
+                                , fields = []
+                                , sfields = forder
                                 , schema = stypes
                                 , store = Dict.empty
+                                , toField = Basics.toString
                                 }
                     in
                     Json.Decode.list (subDecoder subRec)
@@ -1064,7 +1121,7 @@ fieldDecoder fname dtype drec =
         DMaybe dvalue ->
             case dvalue of
                 VBool ->
-                    Json.Decode.maybe Json.Decode.bool
+                    Json.Decode.maybe (Json.Decode.field fname Json.Decode.bool)
                         |> maybeDecoder fname drec fromBool
 
                 VDRec (DSchema ( forder, stypes )) ->
@@ -1073,41 +1130,43 @@ fieldDecoder fname dtype drec =
                             DRec
                                 { buffers = Dict.empty
                                 , errors = Dict.empty
-                                , fields = forder
+                                , fields = []
+                                , sfields = forder
                                 , schema = stypes
                                 , store = Dict.empty
+                                , toField = Basics.toString
                                 }
                     in
-                    Json.Decode.maybe (subDecoder subRec)
+                    Json.Decode.maybe (Json.Decode.field fname (subDecoder subRec))
                         |> maybeDecoder fname drec fromDRec
 
                 VFloat ->
-                    Json.Decode.maybe Json.Decode.float
+                    Json.Decode.maybe (Json.Decode.field fname Json.Decode.float)
                         |> maybeDecoder fname drec fromFloat
 
                 VInt ->
-                    Json.Decode.maybe Json.Decode.int
+                    Json.Decode.maybe (Json.Decode.field fname Json.Decode.int)
                         |> maybeDecoder fname drec fromInt
 
                 VJson ->
-                    Json.Decode.maybe Json.Decode.value
+                    Json.Decode.maybe (Json.Decode.field fname Json.Decode.value)
                         |> maybeDecoder fname drec fromJson
 
                 VString ->
-                    Json.Decode.maybe Json.Decode.string
+                    Json.Decode.maybe (Json.Decode.field fname Json.Decode.string)
                         |> maybeDecoder fname drec fromString
 
         DString ->
             Json.Decode.field fname Json.Decode.string
-                |> Json.Decode.map (\v -> setWith fname (fromString >> Just) v drec)
+                |> Json.Decode.map (\v -> setWithP fname (fromString >> Just) v drec)
 
 
 {-| @private
 Aggregate `DRec` member decoders.
 -}
-subDecoder : DRec -> Decoder DRec
+subDecoder : DRec a -> Decoder (DRec a)
 subDecoder (DRec r) =
-    r.fields
+    r.sfields
         |> List.foldl
             (\fname accum ->
                 Dict.get fname r.schema
@@ -1119,7 +1178,7 @@ subDecoder (DRec r) =
 
 {-| Create decoder for specified `DRec`.
 -}
-decoder : DRec -> Decoder DRec
+decoder : DRec a -> Decoder (DRec a)
 decoder (DRec r) =
     if Dict.isEmpty r.errors then
         subDecoder (DRec r)
@@ -1127,14 +1186,14 @@ decoder (DRec r) =
         errorMessages (DRec r)
             |> Maybe.map Json.Decode.fail
             |> Maybe.withDefault
-                ("decoder logic failure, how to got here?"
+                ("decoder logic failure, how do you got here?"
                     |> Json.Decode.fail
                 )
 
 
 {-| Initialize `DRec` data by decoding specified JSON (`Json.Encode.Value`) accordingly to `DRec` schema.
 -}
-decodeValue : DRec -> Json.Encode.Value -> Result DError DRec
+decodeValue : DRec a -> Json.Encode.Value -> Result DError (DRec a)
 decodeValue drec json =
     if hasSchema drec then
         Json.Decode.decodeValue (decoder drec) json
@@ -1145,7 +1204,7 @@ decodeValue drec json =
 
 {-| Initialize `DRec` data by decoding specified JSON string literal accordingly to `DRec` schema.
 -}
-decodeString : DRec -> String -> Result DError DRec
+decodeString : DRec a -> String -> Result DError (DRec a)
 decodeString drec json =
     if hasSchema drec then
         Json.Decode.decodeString (decoder drec) json
@@ -1156,7 +1215,7 @@ decodeString drec json =
 
 {-| Encode `DRec` into a JSON object accordingly to `DRec` schema.
 -}
-encoder : DRec -> Json.Encode.Value
+encoder : DRec a -> Json.Encode.Value
 encoder (DRec r) =
     if Dict.isEmpty r.errors then
         subObject (DRec r)
@@ -1167,9 +1226,9 @@ encoder (DRec r) =
 {-| @private
 Encode specified `DRec`.
 -}
-subObject : DRec -> Json.Encode.Value
+subObject : DRec a -> Json.Encode.Value
 subObject (DRec r) =
-    r.fields
+    r.sfields
         |> List.foldr
             (\field accum ->
                 Dict.get field r.store
@@ -1182,7 +1241,7 @@ subObject (DRec r) =
 
 {-| @private
 -}
-objectField : String -> List ( String, Json.Encode.Value ) -> DField -> List ( String, Json.Encode.Value )
+objectField : String -> List ( String, Json.Encode.Value ) -> DField a -> List ( String, Json.Encode.Value )
 objectField field accum dfield =
     case dfield of
         DArray_ dfarray ->
