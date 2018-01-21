@@ -29,6 +29,7 @@ module DRec
         , hasSchema
         , hasValue
         , init
+        , initWith
         , isEmpty
         , isValid
         , isValidWith
@@ -60,7 +61,7 @@ decoding from and to JSON.
 
 ## Schema
 
-@docs DType, DValue, DRec, DSchema, DField, DError, init, field
+@docs DType, DValue, DRec, DSchema, DField, DError, init, initWith, field
 
 
 ## Values
@@ -101,6 +102,7 @@ Encode to Elm types.
 -}
 
 import Array exposing (Array)
+import Char
 import Dict exposing (Dict)
 import Json.Decode exposing (Decoder)
 import Json.Encode
@@ -109,7 +111,7 @@ import Json.Encode
 -- SCHEMA
 
 
-{-| `DRec` schema types.
+{-| `DRec a` schema types.
 -}
 type DType
     = DNever
@@ -149,7 +151,7 @@ type DRec a
         }
 
 
-{-| `DRec` field name and `DType` mapping, see `field`.
+{-| `DRec a` field name and `DType` mapping, see `field`.
 -}
 type DField a
     = DArray_ (Array (DField a))
@@ -163,7 +165,7 @@ type DField a
     | DString_ String
 
 
-{-| `DRec` schema.
+{-| `DRec a` schema.
 -}
 type DSchema
     = DSchema ( List String, Dict String DType )
@@ -268,10 +270,21 @@ type DError
     | ValidationFailed String
 
 
-{-| Initialize a `DRec` (without schema and data).
+{-| Initialize a `DRec a` (without schema and data) with default ADT to `String` function.
+
+The default ADT to `String` conversion is from 'CamelCase' to 'snake_case'. To
+customize the conversion use `initWith`.
+
 -}
 init : DRec a
 init =
+    initWith toSnakeCase
+
+
+{-| Initialize a `DRec a` (without schema and data) and with a custom ADT to `String` function.
+-}
+initWith : (a -> String) -> DRec a
+initWith toField =
     DRec
         { buffers = Dict.empty
         , errors = Dict.empty
@@ -279,22 +292,41 @@ init =
         , schema = Dict.empty
         , sfields = []
         , store = Dict.empty
-        , toField = Basics.toString
+        , toField = toField
         }
 
 
-{-| Define `DRec` schema when initializing your application's model member.
+{-| @private
+-}
+toSnakeCase : a -> String
+toSnakeCase adt =
+    Basics.toString adt
+        |> String.foldl
+            (\c accum ->
+                if List.isEmpty accum then
+                    Char.toLower c :: accum
+                else if Char.isUpper c then
+                    Char.toLower c :: ('_' :: accum)
+                else
+                    c :: accum
+            )
+            []
+        |> List.reverse
+        |> String.fromList
+
+
+{-| Define `DRec a` schema when initializing your application's model member.
 
     import DRec exposing (DRec, DType(..), DValue(..))
 
-    type Fields
+    type Field
         = Id
         | Email
         | Name
         | Token
 
     type User
-        = User (DRec Fields)
+        = User (DRec Field)
 
     init : User
     init =
@@ -351,63 +383,63 @@ field adt dtype (DRec r) =
 -- VALUES
 
 
-{-| Remove all data (including input buffers and errors) from `DRec`, schema is not affected.
+{-| Remove all data (including input buffers and errors) from `DRec a`, schema is not affected.
 -}
 clear : DRec a -> DRec a
 clear (DRec r) =
     DRec { r | buffers = Dict.empty, errors = Dict.empty, store = Dict.empty }
 
 
-{-| Set a `Bool` value for specified `DRec` field.
+{-| Set a `Bool` value for specified `DRec a` field.
 -}
 setBool : a -> Bool -> DRec a -> DRec a
 setBool field value drec =
     setWith field (fromBool >> Just) value drec
 
 
-{-| Set a sub `DRec` for spcified `DRec` field.
+{-| Set a sub `DRec a` for spcified `DRec a` field.
 -}
 setDRec : a -> DRec a -> DRec a -> DRec a
 setDRec field value drec =
     setWith field (fromDRec >> Just) value drec
 
 
-{-| Set a `Float` value for specified `DRec` field.
+{-| Set a `Float` value for specified `DRec a` field.
 -}
 setFloat : a -> Float -> DRec a -> DRec a
 setFloat field value drec =
     setWith field (fromFloat >> Just) value drec
 
 
-{-| Set a `Int` value for specified `DRec` field.
+{-| Set a `Int` value for specified `DRec a` field.
 -}
 setInt : a -> Int -> DRec a -> DRec a
 setInt field value drec =
     setWith field (fromInt >> Just) value drec
 
 
-{-| Set a `Json.Encode.Value` value for specified `DRec` field.
+{-| Set a `Json.Encode.Value` value for specified `DRec a` field.
 -}
 setJson : a -> Json.Encode.Value -> DRec a -> DRec a
 setJson field value drec =
     setWith field (fromJson >> Just) value drec
 
 
-{-| Set a `String` value for specified `DRec` field.
+{-| Set a `String` value for specified `DRec a` field.
 -}
 setString : a -> String -> DRec a -> DRec a
 setString field value drec =
     setWith field (fromString >> Just) value drec
 
 
-{-| Set a value for specified `DRec` field with a custom value conversion/validation.
+{-| Set a value for specified `DRec a` field with a custom value conversion/validation.
 
 In case of a conversion/validation error, the value is retained in an internal
 input buffer and an error is set for the specified field.
 
 For quering the error and input buffer use `fieldError` and `fieldBuffer` respectively.
 
-    import User exposing (User(..), Fields(..))
+    import User exposing (User(..))
 
     update : Msg -> Model -> (Model, Cmd Msg)
     update msg model =
@@ -595,8 +627,12 @@ hasSchema (DRec r) =
 
 
 {-| Check if specified field has a valid value.
+
 A valid value is considered to be present if no input buffer for the field is
 set and the field itself actually contains a valid value.
+
+In case of 'DMaybe' a 'Nothing' is considered a valid existing value.
+
 -}
 hasValue : a -> DRec a -> Bool
 hasValue field drec =
@@ -609,7 +645,7 @@ hasValue field drec =
             )
 
 
-{-| Check is specified `DRec` contains data.
+{-| Check is specified `DRec a` contains data.
 -}
 isEmpty : DRec a -> Bool
 isEmpty (DRec r) =
@@ -625,6 +661,11 @@ isValid (DRec r) =
 
 {-| Check if a record is valid for specified fields: no errors and `hasValue`
 returns 'True' for every listed field.
+
+This is useful for cases where you might want filter out the primary key of a
+database table that will be handled automatically by the database and thus,
+will not need to be set in the client.
+
 -}
 isValidWith : List a -> DRec a -> Bool
 isValidWith fields (DRec r) =
@@ -634,27 +675,27 @@ isValidWith fields (DRec r) =
             (Dict.isEmpty r.errors)
 
 
-{-| Query `DRec` schema.
+{-| Query `DRec a` schema.
 
-    type AddressFields
+    type AddressField
         = SteetName
         | BuildingNumber
         | SubNumber
 
-    type PersonFields
+    type PersonField
         = Name
         | Address
 
-    address : DRec AddressFields
+    address : DRec AddressField
     address =
-        DRec.init AddressFields
+        DRec.init
             |> DRec.field StreetName DString
             |> DRec.field BuildingNumber DInt
             |> DRec.field SubNumber (DMaybe DInt)
 
-    person : DRec PersonFields
+    person : DRec PersonField
     person =
-        DRec.init PersonFields
+        DRec.init
             |> DRec.field Name DString
             |> DRec.field Address (DDRec <| DRec.schema address)
 
@@ -676,35 +717,35 @@ fromArray f v =
         |> DArray_
 
 
-{-| Convert from `Bool` to `DField`.
+{-| Convert from `Bool` to `DField a`.
 -}
 fromBool : Bool -> DField a
 fromBool v =
     DBool_ v
 
 
-{-| Convert from `DRec` to `DField`.
+{-| Convert from `DRec a` to `DField a`.
 -}
 fromDRec : DRec a -> DField a
 fromDRec v =
     DDRec_ v
 
 
-{-| Convert from `Float` to `DField`.
+{-| Convert from `Float` to `DField a`.
 -}
 fromFloat : Float -> DField a
 fromFloat v =
     DFloat_ v
 
 
-{-| Convert from `Int` to `DField`.
+{-| Convert from `Int` to `DField a`.
 -}
 fromInt : Int -> DField a
 fromInt v =
     DInt_ v
 
 
-{-| Convert from `Json.Encode.Value` to `DField`.
+{-| Convert from `Json.Encode.Value` to `DField a`.
 -}
 fromJson : Json.Encode.Value -> DField a
 fromJson v =
@@ -719,7 +760,7 @@ fromList f v =
         |> DList_
 
 
-{-| Convert from `Maybe b` to `DField`.
+{-| Convert from `Maybe b` to `DField a`.
 -}
 fromMaybe : (b -> DField a) -> Maybe b -> DField a
 fromMaybe f mv =
@@ -731,7 +772,7 @@ fromMaybe f mv =
             DMaybe_ (Just (f v))
 
 
-{-| Convert from `String` to `DField`.
+{-| Convert from `String` to `DField a`.
 -}
 fromString : String -> DField a
 fromString v =
@@ -742,7 +783,7 @@ fromString v =
 -- DECODE
 
 
-{-| Convert from `DField` to `Array b`
+{-| Convert from `DField a` to `Array b`
 -}
 toArray : (Result DError (DField a) -> Result DError b) -> Result DError (DField a) -> Result DError (Array b)
 toArray toValue rf =
@@ -770,7 +811,7 @@ toArray toValue rf =
                         |> Err
 
 
-{-| Convert from `DField` to `Bool`.
+{-| Convert from `DField a` to `Bool`.
 -}
 toBool : Result DError (DField a) -> Result DError Bool
 toBool rf =
@@ -792,7 +833,7 @@ toBool rf =
                         |> Err
 
 
-{-| Convert from `DField` to `DRec`.
+{-| Convert from `DField a` to `DRec a`.
 -}
 toDRec : Result DError (DField a) -> Result DError (DRec a)
 toDRec rf =
@@ -814,7 +855,7 @@ toDRec rf =
                         |> Err
 
 
-{-| Convert from `DField` to `Float`.
+{-| Convert from `DField a` to `Float`.
 -}
 toFloat : Result DError (DField a) -> Result DError Float
 toFloat rf =
@@ -836,7 +877,7 @@ toFloat rf =
                         |> Err
 
 
-{-| Convert from `DField` to `Int`.
+{-| Convert from `DField a` to `Int`.
 -}
 toInt : Result DError (DField a) -> Result DError Int
 toInt rf =
@@ -858,7 +899,7 @@ toInt rf =
                         |> Err
 
 
-{-| Convert from `DField` to `Json.Encode.Value`.
+{-| Convert from `DField a` to `Json.Encode.Value`.
 -}
 toJson : Result DError (DField a) -> Result DError Json.Encode.Value
 toJson rf =
@@ -880,7 +921,7 @@ toJson rf =
                         |> Err
 
 
-{-| Convert from `DField` to `List b`.
+{-| Convert from `DField a` to `List b`.
 -}
 toList : (Result DError (DField a) -> Result DError b) -> Result DError (DField a) -> Result DError (List b)
 toList toValue rf =
@@ -907,20 +948,23 @@ toList toValue rf =
                         |> Err
 
 
-{-| Convert from a `DField` of `DType` 'DMaybe (DField a)' to `Maybe b`.
+{-| Convert from a `DField a` of `DType` 'DMaybe (DField a)' to `Maybe b`.
 
-    rec : DRec
+    type Field
+        = Token
+
+    rec : DRec Field
     rec =
         DRec.init
-            |> DRec.field "token" DMaybe VString
+            |> DRec.field Token (DMaybe VString)
 
-    update : Maybe String -> DRec -> DRec
+    update : Maybe String -> DRec Field -> DRec Field
     update mv drec =
-        DRec.set "token" (DRec.fromMaybe DRec.fromString) mv drec
+        DRec.set Token (DRec.fromMaybe DRec.fromString) mv drec
 
-    token : DRec -> Maybe String
+    token : DRec Field -> Maybe String
     token drec =
-        DRec.get "token" drec
+        DRec.get Token drec
             |> DRec.toMaybe DRec.toString
 
 -}
@@ -950,7 +994,7 @@ toMaybe toValue rf =
                         |> Err
 
 
-{-| Convert from `DField` to `String`.
+{-| Convert from `DField a` to `String`.
 -}
 toString : Result DError (DField a) -> Result DError String
 toString rf =
@@ -1162,7 +1206,7 @@ fieldDecoder fname dtype drec =
 
 
 {-| @private
-Aggregate `DRec` member decoders.
+Aggregate `DRec a` member decoders.
 -}
 subDecoder : DRec a -> Decoder (DRec a)
 subDecoder (DRec r) =
@@ -1176,7 +1220,7 @@ subDecoder (DRec r) =
             (DRec r |> Json.Decode.succeed)
 
 
-{-| Create decoder for specified `DRec`.
+{-| Create decoder for specified `DRec a`.
 -}
 decoder : DRec a -> Decoder (DRec a)
 decoder (DRec r) =
@@ -1191,7 +1235,7 @@ decoder (DRec r) =
                 )
 
 
-{-| Initialize `DRec` data by decoding specified JSON (`Json.Encode.Value`) accordingly to `DRec` schema.
+{-| Initialize `DRec a` data by decoding specified JSON (`Json.Encode.Value`) accordingly to `DRec a` schema.
 -}
 decodeValue : DRec a -> Json.Encode.Value -> Result DError (DRec a)
 decodeValue drec json =
@@ -1202,7 +1246,7 @@ decodeValue drec json =
         Err NoSchema
 
 
-{-| Initialize `DRec` data by decoding specified JSON string literal accordingly to `DRec` schema.
+{-| Initialize `DRec a` data by decoding specified JSON string literal accordingly to `DRec a` schema.
 -}
 decodeString : DRec a -> String -> Result DError (DRec a)
 decodeString drec json =
@@ -1213,7 +1257,7 @@ decodeString drec json =
         Err NoSchema
 
 
-{-| Encode `DRec` into a JSON object accordingly to `DRec` schema.
+{-| Encode `DRec a` into a JSON object accordingly to `DRec a` schema.
 -}
 encoder : DRec a -> Json.Encode.Value
 encoder (DRec r) =
@@ -1224,7 +1268,7 @@ encoder (DRec r) =
 
 
 {-| @private
-Encode specified `DRec`.
+Encode specified `DRec a`.
 -}
 subObject : DRec a -> Json.Encode.Value
 subObject (DRec r) =
