@@ -41,7 +41,7 @@ init flags =
             , user = User.init
             , currency = Currency.init
             , accounts = Dict.empty
-            , categories = Dict.empty
+            , category = Nothing
             }
     in
     ( model
@@ -169,7 +169,12 @@ update msg model =
                     )
 
         TextInput task input ->
-            Meld.init model
+            Meld.init { model | errors = Nothing, messages = Nothing }
+                |> Meld.addTasks [ task input ]
+                |> Meld.send Results
+
+        ToggleInput task input ->
+            Meld.init { model | errors = Nothing, messages = Nothing }
                 |> Meld.addTasks [ task input ]
                 |> Meld.send Results
 

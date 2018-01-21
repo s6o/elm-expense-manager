@@ -7,7 +7,7 @@ module Model
 import Dict exposing (Dict)
 import Manager.Account exposing (Account)
 import Manager.Auth exposing (Auth)
-import Manager.Category exposing (Category)
+import Manager.Category exposing (CategoryManagement)
 import Manager.Currency exposing (Currency)
 import Manager.Jwt exposing (Jwt)
 import Manager.User exposing (User)
@@ -33,5 +33,5 @@ type alias Model =
     , user : User
     , currency : Currency
     , accounts : Dict Int Account
-    , categories : Dict String (List Category)
+    , category : Maybe CategoryManagement
     }

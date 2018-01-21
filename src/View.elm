@@ -15,6 +15,7 @@ import Messages exposing (Msg(..))
 import Model exposing (Model)
 import Route exposing (Route(..), Tab)
 import View.Accounts as Accounts
+import View.Categories as Categories
 import View.Currency as Currency
 import View.Login as Login
 import View.Logout as Logout
@@ -136,7 +137,8 @@ routeLayout model =
                         ]
 
                     Categories ->
-                        []
+                        [ lazy2 Categories.view model.mdl model.category
+                        ]
 
                     Transactions ->
                         []

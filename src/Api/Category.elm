@@ -11,7 +11,6 @@ import HttpBuilder exposing (..)
 import Json.Decode
 import Manager.Category as Category exposing (Category(..))
 import Manager.Jwt as Jwt
-import Manager.User as User
 import Meld exposing (Error, Meld)
 import Messages exposing (Msg)
 import Model exposing (Model)
@@ -26,34 +25,20 @@ read meld =
                 let
                     taskModel ma =
                         { ma
-                            | categories =
-                                results
-                                    |> List.foldl toTree []
-                                    |> Dict.fromList
+                            | category =
+                                { items =
+                                    results
+                                        |> List.map (\c -> ( Category.id c, c ))
+                                        |> (\cats -> ( Category.defaultId, Category.empty <| Jwt.userId ma.claims ) :: cats)
+                                        |> Dict.fromList
+                                , marked = []
+                                , selected = Nothing
+                                }
+                                    |> Just
                         }
                 in
                 Meld.withMerge taskModel meld
             )
-
-
-toTree : Category -> List ( String, List Category ) -> List ( String, List Category )
-toTree (Category drec) subs =
-    case subs of
-        [] ->
-            ( Category.parentPath (Category drec)
-            , [ Category drec ]
-            )
-                :: subs
-
-        ( spath, slist ) :: rest ->
-            let
-                cpath =
-                    Category.parentPath (Category drec)
-            in
-            if cpath == spath then
-                ( cpath, Category drec :: slist ) :: rest
-            else
-                ( cpath, Category drec :: [] ) :: (( spath, slist ) :: rest)
 
 
 get : Meld Model Error Msg -> Task Error (List Category)
