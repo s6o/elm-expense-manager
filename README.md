@@ -4,8 +4,8 @@ An expense manager in Elm.
 
 ## What to expect?
 The Expense Manager in Elm is an experiment, to try out a few things differently.
-After a year and change of almost daily Elm development and 20,000+ (single dev)
-SPA in production, a few _gripes_ have accumulated:
+After a year and change of almost daily Elm development and 18000+ (single dev)
+SPA in production, a few annoyances have accumulated:
 
   * tagging of things, redundant things, every input field, every request etc.
   * JSON decoding/encoding - in most cases copy/paste boilarplate, it really
