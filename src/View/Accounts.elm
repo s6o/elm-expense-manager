@@ -31,7 +31,7 @@ view mdl currency accounts =
             |> Dict.values
             |> List.indexedMap (\i rr -> account mdl currency (i * accountFields) rr)
          )
-            ++ (Dict.get 0 accounts
+            ++ (Dict.get Account.defaultId accounts
                     |> Maybe.map
                         (\account ->
                             [ addAccount
