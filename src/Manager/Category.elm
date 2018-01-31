@@ -6,17 +6,20 @@ module Manager.Category
         , defaultId
         , empty
         , filterMain
+        , filterSub
         , id
         , init
         , name
         , nameInput
         , parentPath
         , sortWithName
+        , toggle
         )
 
 import DRec exposing (DError, DRec, DType(..))
 import Dict exposing (Dict)
 import Meld exposing (Error(..), Meld)
+import Set exposing (Set)
 import Task exposing (Task)
 
 
@@ -28,7 +31,7 @@ type alias Parent m =
 
 type alias CategoryManagement =
     { items : Dict Int Category
-    , marked : List Int
+    , marked : Set Int
     , selected : Maybe Int
     }
 
@@ -124,9 +127,58 @@ nameInput categoryId value meld =
         |> Maybe.withDefault (Task.succeed meld)
 
 
+toggle : Int -> Bool -> Meld (Parent m) Error msg -> Task Error (Meld (Parent m) Error msg)
+toggle categoryId value meld =
+    let
+        model =
+            Meld.model meld
+
+        categories =
+            model.category
+                |> Maybe.map .items
+                |> Maybe.withDefault Dict.empty
+    in
+    Dict.get categoryId categories
+        |> Maybe.map
+            (\category ->
+                let
+                    taskModel ma =
+                        { ma
+                            | category =
+                                ma.category
+                                    |> Maybe.map
+                                        (\r ->
+                                            { r
+                                                | marked =
+                                                    if value then
+                                                        Set.insert (id category) r.marked
+                                                    else
+                                                        Set.remove (id category) r.marked
+                                            }
+                                        )
+                        }
+                in
+                Meld.withMerge taskModel meld
+                    |> Task.succeed
+            )
+        |> Maybe.withDefault (Task.succeed meld)
+
+
 filterMain : Int -> Category -> Bool
 filterMain _ c =
     if parentPath c == "/" then
+        True
+    else
+        False
+
+
+filterSub : String -> Int -> Category -> Bool
+filterSub main _ c =
+    let
+        searchPath =
+            "/" ++ main
+    in
+    if searchPath == parentPath c then
         True
     else
         False

@@ -32,4 +32,4 @@ type Msg
     | Results (Result Error (Meld Model Error Msg))
     | SelectTab String
     | TextInput (String -> Meld Model Error Msg -> Task Error (Meld Model Error Msg)) String
-    | ToggleInput (Bool -> Meld Model Error Msg -> Task Error (Meld Model Error Msg)) Bool
+    | ToggleInput (Meld Model Error Msg -> Task Error (Meld Model Error Msg))

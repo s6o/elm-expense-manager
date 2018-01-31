@@ -173,9 +173,9 @@ update msg model =
                 |> Meld.addTasks [ task input ]
                 |> Meld.send Results
 
-        ToggleInput task input ->
+        ToggleInput task ->
             Meld.init { model | errors = Nothing, messages = Nothing }
-                |> Meld.addTasks [ task input ]
+                |> Meld.addTasks [ task ]
                 |> Meld.send Results
 
 

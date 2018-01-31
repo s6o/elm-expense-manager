@@ -14,6 +14,7 @@ import Manager.Jwt as Jwt
 import Meld exposing (Error, Meld)
 import Messages exposing (Msg)
 import Model exposing (Model)
+import Set
 import Task exposing (Task)
 
 
@@ -31,7 +32,7 @@ read meld =
                                         |> List.map (\c -> ( Category.id c, c ))
                                         |> (\cats -> ( Category.defaultId, Category.empty <| Jwt.userId ma.claims ) :: cats)
                                         |> Dict.fromList
-                                , marked = []
+                                , marked = Set.empty
                                 , selected = Nothing
                                 }
                                     |> Just

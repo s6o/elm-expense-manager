@@ -18,6 +18,7 @@ import Material.Textfield as Textfield
 import Material.Toggles as Toggles
 import Material.Typography as Typography
 import Messages exposing (Msg(..))
+import Set exposing (Set)
 
 
 view : Material.Model -> Maybe CategoryManagement -> Html Msg
@@ -46,7 +47,7 @@ view mdl mm =
                             |> List.sortWith Category.sortWithName
                             |> (\mains ->
                                     List.indexedMap
-                                        (\i c -> item mdl (i + 2) c)
+                                        (\i c -> item mdl (i + 2) c mgmt.marked)
                                         mains
                                )
                         )
@@ -113,8 +114,12 @@ add mdl category =
         ]
 
 
-item : Material.Model -> Int -> Category -> Html Msg
-item mdl index c =
+item : Material.Model -> Int -> Category -> Set Int -> Html Msg
+item mdl index c marked =
+    let
+        checkMark =
+            Set.member (Category.id c) marked
+    in
     Lists.li [ Lists.withSubtitle ]
         [ Options.div
             [ Options.center
@@ -147,9 +152,9 @@ item mdl index c =
             [ Toggles.checkbox Mdl
                 [ index ]
                 mdl
-                [ Toggles.value False
-
-                --                , Options.onToggle (Flip 4)
+                [ Toggles.value checkMark
+                , ToggleInput (Category.toggle (Category.id c) (not checkMark))
+                    |> Options.onToggle
                 ]
                 []
             ]
