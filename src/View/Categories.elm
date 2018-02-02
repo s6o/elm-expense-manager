@@ -7,7 +7,7 @@ import Api.Category
 import Dict exposing (Dict)
 import Html exposing (Html, div, text)
 import KeyEvent
-import Manager.Category as Category exposing (Category(..), CategoryManagement)
+import Manager.Category as Category exposing (Category(..), CategoryManagement, NameAction(..))
 import Material
 import Material.Button as Button
 import Material.Color as Color
@@ -30,49 +30,122 @@ view mdl mm =
                 []
 
             Just mgmt ->
-                [ Dict.get Category.defaultId mgmt.items
-                    |> Maybe.map (add mdl)
-                    |> Maybe.withDefault (text "Add category setup failure")
-                , Options.div
-                    [ Elevation.e4
-                    , css "padding" "5px"
-                    ]
-                    [ Lists.ul
-                        [ css "margin" "0"
-                        , css "padding" "0"
-                        ]
-                        (mgmt.items
-                            |> Dict.filter Category.filterMain
-                            |> Dict.values
-                            |> List.sortWith Category.sortWithName
-                            |> (\mains ->
-                                    List.indexedMap
-                                        (\i c -> item mdl (i + 2) c mgmt.marked)
-                                        mains
-                               )
-                        )
-                    , Options.div
-                        [ css "text-align" "right"
-                        , css "padding" "10px 0 10px 0"
-                        ]
-                        [ Button.render Mdl
-                            [ 1 ]
-                            mdl
-                            [ Button.colored
-                            , Button.raised
-                            , Button.ripple
-
-                            --                , Options.onClick <| Request [ Api.Account.add ]
-                            ]
-                            [ text "Remove" ]
-                        ]
-                    ]
-                ]
+                parent mdl mgmt ++ new mdl mgmt ++ categories mdl mgmt
         )
 
 
-add : Material.Model -> Category -> Html Msg
-add mdl category =
+{-| Create parent selection if a main category is selected.
+-}
+parent : Material.Model -> CategoryManagement -> List (Html Msg)
+parent mdl mgmt =
+    case mgmt.subselected of
+        Nothing ->
+            mgmt.selected
+                |> Maybe.map (\c -> [ edit mdl c ])
+                |> Maybe.withDefault []
+
+        Just sc ->
+            [ edit mdl sc ]
+
+
+{-| Create add section.
+-}
+new : Material.Model -> CategoryManagement -> List (Html Msg)
+new mdl mgmt =
+    let
+        baseIndex =
+            mgmt.selected
+                |> Maybe.map (\_ -> 3)
+                |> Maybe.withDefault 0
+    in
+    mgmt.new
+        |> Maybe.map
+            (\c ->
+                case mgmt.subselected of
+                    Nothing ->
+                        [ add mdl baseIndex c ]
+
+                    Just _ ->
+                        []
+            )
+        |> Maybe.withDefault []
+
+
+{-| Create list of categories.
+-}
+categories : Material.Model -> CategoryManagement -> List (Html Msg)
+categories mdl mgmt =
+    let
+        catFilter =
+            mgmt.selected
+                |> Maybe.map
+                    (\c ->
+                        Dict.get (Category.id c) mgmt.items
+                            |> Maybe.map (Category.name >> Category.filterSub)
+                            |> Maybe.withDefault Category.filterMain
+                    )
+                |> Maybe.withDefault Category.filterMain
+
+        filtered =
+            mgmt.items
+                |> Dict.filter catFilter
+
+        baseIndex =
+            mgmt.selected
+                |> Maybe.map (\_ -> 5)
+                |> Maybe.withDefault 2
+
+        subSelected =
+            case mgmt.subselected of
+                Nothing ->
+                    False
+
+                Just _ ->
+                    True
+    in
+    if Dict.size filtered > 0 && not subSelected then
+        [ Options.div
+            [ Elevation.e4
+            , css "padding" "5px"
+            ]
+            [ Lists.ul
+                [ css "margin" "0"
+                , css "padding" "0"
+                ]
+                (filtered
+                    |> Dict.values
+                    |> List.sortWith Category.sortWithName
+                    |> (\mains ->
+                            List.indexedMap
+                                (\i c -> item mdl (i + baseIndex) c mgmt.marked)
+                                mains
+                       )
+                )
+            , Options.div
+                [ css "text-align" "right"
+                , css "padding" "10px 0 10px 0"
+                ]
+                [ Button.render Mdl
+                    [ 1 ]
+                    mdl
+                    [ Button.colored
+                    , Button.raised
+                    , Button.ripple
+
+                    --                , Options.onClick <| Request [ Api.Account.add ]
+                    ]
+                    [ text "Remove" ]
+                ]
+            ]
+        ]
+    else
+        []
+
+
+{-| Add form.
+-}
+add : Material.Model -> Int -> Category -> Html Msg
+add mdl index category =
     Options.div
         [ Elevation.e4
         , css "padding" "5px"
@@ -80,7 +153,7 @@ add mdl category =
         [ Options.div
             []
             [ Textfield.render Mdl
-                [ 0 ]
+                [ index ]
                 mdl
                 [ Textfield.label "Category name"
                 , Textfield.floatingLabel
@@ -89,7 +162,7 @@ add mdl category =
                     |> Options.when (String.length (Category.name category) <= 0)
                 , Category.name category
                     |> Textfield.value
-                , TextInput (Category.nameInput (Category.id category))
+                , TextInput (Category.nameInput Category.New)
                     |> Options.onInput
 
                 --                , KeyEvent.onEnter action
@@ -101,7 +174,7 @@ add mdl category =
             , css "padding-bottom" "10px"
             ]
             [ Button.render Mdl
-                [ 1 ]
+                [ index + 1 ]
                 mdl
                 [ Button.colored
                 , Button.raised
@@ -114,6 +187,101 @@ add mdl category =
         ]
 
 
+{-| Edit form, for changeing existing category name.
+-}
+edit : Material.Model -> Category -> Html Msg
+edit mdl category =
+    let
+        ( logo, label ) =
+            if Category.parentPath category == "/" then
+                ( "/", "Main Category" )
+            else
+                ( "//", "Sub Category - " ++ Category.parentPath category )
+    in
+    Options.div
+        [ Elevation.e4
+        , css "padding" "5px"
+        ]
+        [ Lists.ul
+            [ css "margin" "0"
+            , css "padding" "0"
+            ]
+            [ Lists.li []
+                [ Options.div
+                    [ Options.center
+                    , Color.background Color.accent
+                    , Color.text Color.accentContrast
+                    , Typography.title
+                    , css "width" "36px"
+                    , css "height" "36px"
+                    , css "margin-right" "2rem"
+                    ]
+                    [ text logo
+                    ]
+                , Lists.content
+                    []
+                    [ Options.span
+                        []
+                        [ Textfield.render Mdl
+                            [ 0 ]
+                            mdl
+                            [ Textfield.label label
+                            , Textfield.floatingLabel
+                            , css "width" "100%"
+                            , Textfield.error "An non-empty category name is required"
+                                |> Options.when (String.length (Category.name category) <= 0)
+                            , Category.name category
+                                |> Textfield.value
+                            , TextInput (Category.nameInput Category.Edit)
+                                |> Options.onInput
+
+                            --                , KeyEvent.onEnter action
+                            ]
+                            []
+                        ]
+                    ]
+                ]
+            ]
+        , Options.div
+            [ css "min-height" "50px"
+            ]
+            [ Options.div
+                [ css "text-align" "right"
+                , css "padding-bottom" "10px"
+                , css "float" "left"
+                ]
+                [ Button.render Mdl
+                    [ 2 ]
+                    mdl
+                    [ Button.colored
+                    , Button.raised
+                    , Button.ripple
+                    , Options.onClick <| Act [ Category.unselect ]
+                    ]
+                    [ text "Up" ]
+                ]
+            , Options.div
+                [ css "text-align" "right"
+                , css "padding-bottom" "10px"
+                , css "float" "right"
+                ]
+                [ Button.render Mdl
+                    [ 1 ]
+                    mdl
+                    [ Button.colored
+                    , Button.raised
+                    , Button.ripple
+
+                    --                , Options.onClick <| Request [ Api.Account.add ]
+                    ]
+                    [ text "Save" ]
+                ]
+            ]
+        ]
+
+
+{-| Material List entry for a category.
+-}
 item : Material.Model -> Int -> Category -> Set Int -> Html Msg
 item mdl index c marked =
     let
@@ -136,6 +304,7 @@ item mdl index c marked =
             ]
         , Lists.content
             [ css "cursor" "pointer"
+            , Options.onClick <| Act [ Category.select <| Category.id c ]
             ]
             [ Options.span
                 []

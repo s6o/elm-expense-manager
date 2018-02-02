@@ -30,10 +30,13 @@ read meld =
                                 { items =
                                     results
                                         |> List.map (\c -> ( Category.id c, c ))
-                                        |> (\cats -> ( Category.defaultId, Category.empty <| Jwt.userId ma.claims ) :: cats)
                                         |> Dict.fromList
                                 , marked = Set.empty
+                                , new =
+                                    Category.empty (Jwt.userId ma.claims)
+                                        |> Just
                                 , selected = Nothing
+                                , subselected = Nothing
                                 }
                                     |> Just
                         }

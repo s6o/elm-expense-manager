@@ -3,6 +3,7 @@ module Manager.Category
         ( Category(..)
         , CategoryField(..)
         , CategoryManagement
+        , NameAction(..)
         , defaultId
         , empty
         , filterMain
@@ -12,12 +13,15 @@ module Manager.Category
         , name
         , nameInput
         , parentPath
+        , select
         , sortWithName
         , toggle
+        , unselect
         )
 
 import DRec exposing (DError, DRec, DType(..))
 import Dict exposing (Dict)
+import Maybe.Extra as EMaybe
 import Meld exposing (Error(..), Meld)
 import Set exposing (Set)
 import Task exposing (Task)
@@ -32,7 +36,9 @@ type alias Parent m =
 type alias CategoryManagement =
     { items : Dict Int Category
     , marked : Set Int
-    , selected : Maybe Int
+    , new : Maybe Category
+    , selected : Maybe Category
+    , subselected : Maybe Category
     }
 
 
@@ -45,6 +51,11 @@ type CategoryField
     | MgrId
     | Name
     | ParentPath
+
+
+type NameAction
+    = New
+    | Edit
 
 
 defaultId : Int
@@ -65,7 +76,10 @@ init =
 empty : Int -> Category
 empty managerId =
     init
-        |> (\(Category drec) -> DRec.setInt MgrId managerId drec)
+        |> (\(Category drec) ->
+                DRec.setInt PkId defaultId drec
+                    |> DRec.setInt MgrId managerId
+           )
         |> Category
 
 
@@ -73,7 +87,7 @@ id : Category -> Int
 id (Category drec) =
     DRec.get PkId drec
         |> DRec.toInt
-        |> Result.withDefault 0
+        |> Result.withDefault defaultId
 
 
 name : Category -> String
@@ -90,8 +104,69 @@ parentPath (Category drec) =
         |> Result.withDefault ""
 
 
-nameInput : Int -> String -> Meld (Parent m) Error msg -> Task Error (Meld (Parent m) Error msg)
-nameInput categoryId value meld =
+nameInput : NameAction -> String -> Meld (Parent m) Error msg -> Task Error (Meld (Parent m) Error msg)
+nameInput action value meld =
+    let
+        model =
+            Meld.model meld
+
+        category =
+            model.category
+                |> Maybe.map
+                    (\r ->
+                        case action of
+                            New ->
+                                r.new
+
+                            Edit ->
+                                case r.subselected of
+                                    Nothing ->
+                                        r.selected
+
+                                    Just _ ->
+                                        r.subselected
+                    )
+                |> EMaybe.join
+    in
+    category
+        |> Maybe.map
+            (\(Category drec) ->
+                let
+                    newDRec =
+                        DRec.setString Name value drec
+
+                    taskModel ma =
+                        case action of
+                            New ->
+                                { ma
+                                    | category =
+                                        ma.category
+                                            |> Maybe.map (\r -> { r | new = Just (Category newDRec) })
+                                }
+
+                            Edit ->
+                                { ma
+                                    | category =
+                                        ma.category
+                                            |> Maybe.map
+                                                (\r ->
+                                                    case r.subselected of
+                                                        Nothing ->
+                                                            { r | selected = Just (Category newDRec) }
+
+                                                        Just _ ->
+                                                            { r | subselected = Just (Category newDRec) }
+                                                )
+                                }
+                in
+                Meld.withMerge taskModel meld
+                    |> Task.succeed
+            )
+        |> Maybe.withDefault (Task.succeed meld)
+
+
+select : Int -> Meld (Parent m) Error msg -> Task Error (Meld (Parent m) Error msg)
+select categoryId meld =
     let
         model =
             Meld.model meld
@@ -103,21 +178,20 @@ nameInput categoryId value meld =
     in
     Dict.get categoryId categories
         |> Maybe.map
-            (\(Category drec) ->
+            (\c ->
                 let
-                    newDRec =
-                        DRec.setString Name value drec
-
                     taskModel ma =
                         { ma
                             | category =
                                 ma.category
                                     |> Maybe.map
                                         (\r ->
-                                            { r
-                                                | items =
-                                                    Dict.insert categoryId (Category newDRec) r.items
-                                            }
+                                            case r.selected of
+                                                Nothing ->
+                                                    { r | selected = Just c }
+
+                                                Just _ ->
+                                                    { r | subselected = Just c }
                                         )
                         }
                 in
@@ -155,6 +229,37 @@ toggle categoryId value meld =
                                                     else
                                                         Set.remove (id category) r.marked
                                             }
+                                        )
+                        }
+                in
+                Meld.withMerge taskModel meld
+                    |> Task.succeed
+            )
+        |> Maybe.withDefault (Task.succeed meld)
+
+
+unselect : Meld (Parent m) Error msg -> Task Error (Meld (Parent m) Error msg)
+unselect meld =
+    let
+        model =
+            Meld.model meld
+    in
+    model.category
+        |> Maybe.map
+            (\_ ->
+                let
+                    taskModel ma =
+                        { ma
+                            | category =
+                                ma.category
+                                    |> Maybe.map
+                                        (\r ->
+                                            case r.subselected of
+                                                Nothing ->
+                                                    { r | selected = Nothing }
+
+                                                Just _ ->
+                                                    { r | subselected = Nothing }
                                         )
                         }
                 in
