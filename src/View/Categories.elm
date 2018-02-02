@@ -153,7 +153,7 @@ item mdl index c marked =
                 [ index ]
                 mdl
                 [ Toggles.value checkMark
-                , ToggleInput (Category.toggle (Category.id c) (not checkMark))
+                , Act [ Category.toggle (Category.id c) (not checkMark) ]
                     |> Options.onToggle
                 ]
                 []

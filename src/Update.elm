@@ -173,11 +173,6 @@ update msg model =
                 |> Meld.addTasks [ task input ]
                 |> Meld.send Results
 
-        ToggleInput task ->
-            Meld.init { model | errors = Nothing, messages = Nothing }
-                |> Meld.addTasks [ task ]
-                |> Meld.send Results
-
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
