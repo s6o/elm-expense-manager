@@ -80,8 +80,8 @@ create table api.account_transactions (
 , amount bigint default 0
 , title text not null
 , comments text
-, pt_id integer references api.payment_types(pk_id) on delete cascade on update cascade
-, cat_id integer references api.categories(pk_id) on delete cascade on update cascade
+, pt_id integer references api.payment_types(pk_id) on delete set null on update cascade
+, cat_id integer references api.categories(pk_id) on delete set null on update cascade
 , source_account integer references api.accounts(pk_id) on delete cascade on update cascade
 , target_account integer references api.accounts(pk_id) on delete cascade on update cascade
 );
