@@ -125,7 +125,7 @@ routeLayout model =
                         ]
 
                     Logout ->
-                        [ lazy2 Logout.view model.mdl model.token
+                        [ lazy3 Logout.view model.mdl model.token model.location
                         ]
 
                     Currency ->
@@ -136,7 +136,7 @@ routeLayout model =
                         [ lazy3 Accounts.view model.mdl model.currency model.accounts
                         ]
 
-                    Categories ->
+                    Categories _ ->
                         [ lazy2 Categories.view model.mdl model.category
                         ]
 

@@ -12,6 +12,7 @@ import Manager.Currency exposing (Currency)
 import Manager.Jwt exposing (Jwt)
 import Manager.User exposing (User)
 import Material
+import Navigation exposing (Location)
 import Route exposing (Route, Tab)
 
 
@@ -25,6 +26,7 @@ type alias Model =
     , errors : Maybe String
     , messages : Maybe String
     , mdl : Material.Model
+    , location : Maybe Location
     , route : Route
     , tabs : Dict String Tab
     , token : Maybe String

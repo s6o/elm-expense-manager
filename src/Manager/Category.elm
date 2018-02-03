@@ -23,13 +23,15 @@ import DRec exposing (DError, DRec, DType(..))
 import Dict exposing (Dict)
 import Maybe.Extra as EMaybe
 import Meld exposing (Error(..), Meld)
+import Route as Route exposing (Route(..), State(..))
 import Set exposing (Set)
 import Task exposing (Task)
 
 
 type alias Parent m =
     { m
-        | category : Maybe CategoryManagement
+        | route : Route
+        , category : Maybe CategoryManagement
     }
 
 
@@ -182,16 +184,25 @@ select categoryId meld =
                 let
                     taskModel ma =
                         { ma
-                            | category =
+                            | route = Route.Categories <| Route.EditId categoryId
+                            , category =
                                 ma.category
                                     |> Maybe.map
                                         (\r ->
-                                            case r.selected of
-                                                Nothing ->
+                                            case parentPath c == "/" of
+                                                True ->
                                                     { r | selected = Just c }
 
-                                                Just _ ->
-                                                    { r | subselected = Just c }
+                                                False ->
+                                                    case r.selected of
+                                                        Nothing ->
+                                                            { r
+                                                                | selected = findMain (parentPath c) r.items
+                                                                , subselected = Just c
+                                                            }
+
+                                                        Just _ ->
+                                                            { r | subselected = Just c }
                                         )
                         }
                 in
@@ -250,7 +261,21 @@ unselect meld =
                 let
                     taskModel ma =
                         { ma
-                            | category =
+                            | route =
+                                ma.category
+                                    |> Maybe.map
+                                        (\r ->
+                                            case r.subselected of
+                                                Nothing ->
+                                                    Route.Categories Route.All
+
+                                                Just _ ->
+                                                    r.selected
+                                                        |> Maybe.map (\c -> Route.Categories <| Route.EditId <| id c)
+                                                        |> Maybe.withDefault (Route.Categories Route.All)
+                                        )
+                                    |> Maybe.withDefault (Route.Categories Route.All)
+                            , category =
                                 ma.category
                                     |> Maybe.map
                                         (\r ->
@@ -267,6 +292,17 @@ unselect meld =
                     |> Task.succeed
             )
         |> Maybe.withDefault (Task.succeed meld)
+
+
+findMain : String -> Dict Int Category -> Maybe Category
+findMain path items =
+    let
+        sname =
+            String.dropLeft 1 path
+    in
+    Dict.values items
+        |> List.filter (\c -> name c == sname)
+        |> List.head
 
 
 filterMain : Int -> Category -> Bool

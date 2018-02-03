@@ -33,6 +33,7 @@ init flags =
             , errors = Nothing
             , messages = Nothing
             , mdl = Material.model
+            , location = Nothing
             , route = Route.Empty
             , tabs = initTabs
             , token = flags.token
@@ -70,7 +71,7 @@ delta2url previous current =
 
 url2messages : Location -> List Msg
 url2messages location =
-    [ SelectTab location.hash
+    [ SelectTab (Just location)
     ]
 
 
@@ -145,28 +146,40 @@ update msg model =
                     , Cmd.none
                     )
 
-        SelectTab fragment ->
-            Route.tabs model.token model.tabs
-                |> List.filter (\t -> fragment == Route.toFragment t.route)
-                |> List.head
-                |> Maybe.map
-                    (\t ->
-                        ( { model
-                            | errors = Nothing
-                            , messages = Nothing
-                            , route = t.route
-                          }
-                        , Cmd.none
-                        )
-                    )
-                |> Maybe.withDefault
-                    ( { model
-                        | errors = Nothing
-                        , messages = Nothing
-                        , route = Route.defaultRoute model.token
-                      }
-                    , Navigation.modifyUrl (Route.defaultRoute model.token |> Route.toFragment)
-                    )
+        SelectTab mlocation ->
+            case mlocation of
+                Nothing ->
+                    ( model, Cmd.none )
+
+                Just location ->
+                    Route.tabs model.token model.tabs
+                        |> List.filter
+                            (\t ->
+                                String.split "/" location.hash
+                                    |> List.head
+                                    |> Maybe.map (\f -> String.startsWith f (Route.toFragment t.route))
+                                    |> Maybe.withDefault False
+                            )
+                        |> List.head
+                        |> Maybe.map
+                            (\_ ->
+                                ( { model
+                                    | errors = Nothing
+                                    , messages = Nothing
+                                    , location = Just location
+                                    , route = Debug.log "SelectTab Route" (Route.toRoute location)
+                                  }
+                                , Cmd.none
+                                )
+                            )
+                        |> Maybe.withDefault
+                            ( { model
+                                | errors = Nothing
+                                , messages = Nothing
+                                , route = Route.defaultRoute model.token
+                              }
+                            , Navigation.modifyUrl (Route.defaultRoute model.token |> Route.toFragment)
+                            )
 
         TextInput task input ->
             Meld.init { model | errors = Nothing, messages = Nothing }

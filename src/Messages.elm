@@ -6,6 +6,7 @@ module Messages
 import Material
 import Meld exposing (Error, Meld)
 import Model exposing (Model)
+import Navigation exposing (Location)
 import Task exposing (Task)
 
 
@@ -30,5 +31,5 @@ type Msg
     | Request (List (Meld Model Error Msg -> Task Error (Meld Model Error Msg)))
     | Responses (Result Error (Meld Model Error Msg))
     | Results (Result Error (Meld Model Error Msg))
-    | SelectTab String
+    | SelectTab (Maybe Location)
     | TextInput (String -> Meld Model Error Msg -> Task Error (Meld Model Error Msg)) String

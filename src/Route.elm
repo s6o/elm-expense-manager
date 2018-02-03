@@ -1,14 +1,18 @@
 module Route
     exposing
         ( Route(..)
+        , State(..)
         , Tab
         , defaultRoute
         , initTabs
         , tabs
         , toFragment
+        , toRoute
         )
 
 import Dict exposing (Dict)
+import Navigation exposing (Location)
+import UrlParser exposing ((</>), int, s, string)
 
 
 type Route
@@ -16,11 +20,18 @@ type Route
     | Login
     | Currency
     | Accounts
-    | Categories
+    | Categories State
     | Transactions
     | Statistics
     | Groups
     | Logout
+
+
+type State
+    = All
+    | EditId Int
+    | EditKey String
+    | New
 
 
 type alias Tab =
@@ -45,7 +56,7 @@ initTabs =
     [ Tab 0 Login "Login"
     , Tab 1 Currency "Currency"
     , Tab 2 Accounts "Accounts"
-    , Tab 3 Categories "Categories"
+    , Tab 3 (Categories All) "Categories"
     , Tab 4 Transactions "Transactions"
     , Tab 5 Statistics "Statistics"
     , Tab 6 Groups "Groups"
@@ -76,25 +87,53 @@ toFragment route =
             ""
 
         Login ->
-            "#login"
+            "#/login"
 
         Currency ->
-            "#currency"
+            "#/currency"
 
         Accounts ->
-            "#accounts"
+            "#/accounts"
 
-        Categories ->
-            "#categories"
+        Categories state ->
+            "#/categories"
+                ++ (case state of
+                        EditId id ->
+                            "/edit/" ++ toString id
+
+                        _ ->
+                            ""
+                   )
 
         Transactions ->
-            "#transactions"
+            "#/transactions"
 
         Statistics ->
-            "#statistics"
+            "#/statistics"
 
         Groups ->
-            "#groups"
+            "#/groups"
 
         Logout ->
-            "#logout"
+            "#/logout"
+
+
+toRoute : Location -> Route
+toRoute location =
+    let
+        route =
+            UrlParser.oneOf
+                [ UrlParser.map Login (s "login")
+                , UrlParser.map Currency (s "currency")
+                , UrlParser.map Accounts (s "accounts")
+                , UrlParser.map (Categories All) (s "categories")
+                , UrlParser.map (EditId >> Categories) (s "categories" </> s "edit" </> int)
+                , UrlParser.map Transactions (s "transactions")
+                , UrlParser.map Statistics (s "statistics")
+                , UrlParser.map Groups (s "groups")
+                , UrlParser.map Logout (s "logout")
+                ]
+    in
+    UrlParser.parseHash route location
+        |> Maybe.map identity
+        |> Maybe.withDefault Empty

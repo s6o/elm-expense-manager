@@ -10,11 +10,12 @@ import Material.Button as Button
 import Material.Elevation as Elevation
 import Material.Options as Options exposing (css)
 import Messages exposing (Msg(..))
+import Navigation exposing (Location)
 import Route
 
 
-view : Material.Model -> Maybe String -> Html Msg
-view mdl token =
+view : Material.Model -> Maybe String -> Maybe Location -> Html Msg
+view mdl token mlocation =
     Options.div
         [ Elevation.e4
         , css "padding" "5px"
@@ -32,7 +33,12 @@ view mdl token =
                 [ Button.colored
                 , Button.raised
                 , Button.ripple
-                , Options.onClick <| SelectTab (Route.defaultRoute token |> Route.toFragment)
+                , Options.onClick <|
+                    SelectTab
+                        (mlocation
+                            |> Maybe.map
+                                (\l -> { l | hash = Route.defaultRoute token |> Route.toFragment })
+                        )
                 , css "margin-right" "10px"
                 ]
                 [ text "No" ]
