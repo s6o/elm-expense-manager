@@ -39,6 +39,7 @@ read meld =
                                 , subselected = Nothing
                                 }
                                     |> Just
+                                    |> Category.viewState ma.route
                         }
                 in
                 Meld.withMerge taskModel meld

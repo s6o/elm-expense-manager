@@ -17,6 +17,7 @@ module Manager.Category
         , sortWithName
         , toggle
         , unselect
+        , viewState
         )
 
 import DRec exposing (DError, DRec, DType(..))
@@ -292,6 +293,41 @@ unselect meld =
                     |> Task.succeed
             )
         |> Maybe.withDefault (Task.succeed meld)
+
+
+viewState : Route -> Maybe CategoryManagement -> Maybe CategoryManagement
+viewState route mgmt =
+    case route of
+        Categories state ->
+            case state of
+                EditId cid ->
+                    mgmt
+                        |> Maybe.map
+                            (\r ->
+                                case Dict.get cid r.items of
+                                    Nothing ->
+                                        r
+
+                                    Just category ->
+                                        if parentPath category == "/" then
+                                            { r
+                                                | marked = Set.empty
+                                                , selected = Just category
+                                            }
+                                        else
+                                            { r
+                                                | marked = Set.empty
+                                                , selected =
+                                                    findMain (parentPath category) r.items
+                                                , subselected = Just category
+                                            }
+                            )
+
+                _ ->
+                    mgmt
+
+        _ ->
+            mgmt
 
 
 findMain : String -> Dict Int Category -> Maybe Category

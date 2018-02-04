@@ -12,6 +12,7 @@ import Api.Init exposing (initialRequests)
 import Api.Response
 import Dict
 import Manager.Auth as Auth
+import Manager.Category as Category
 import Manager.Currency as Currency
 import Manager.Jwt as Jwt
 import Manager.User as User
@@ -152,39 +153,81 @@ update msg model =
                     ( model, Cmd.none )
 
                 Just location ->
-                    Route.tabs model.token model.tabs
-                        |> List.filter
-                            (\t ->
-                                String.split "/" location.hash
-                                    |> List.head
-                                    |> Maybe.map (\f -> String.startsWith f (Route.toFragment t.route))
-                                    |> Maybe.withDefault False
-                            )
-                        |> List.head
-                        |> Maybe.map
-                            (\_ ->
+                    let
+                        prefix =
+                            routePrefix location
+                    in
+                    if String.isEmpty prefix then
+                        ( { model
+                            | errors = Nothing
+                            , messages = Nothing
+                            , route = Route.defaultRoute model.token
+                          }
+                        , Cmd.none
+                        )
+                    else
+                        Route.tabs model.token model.tabs
+                            |> List.filter (\t -> String.startsWith prefix (Route.toFragment t.route))
+                            |> List.head
+                            |> Maybe.map (\_ -> loadRoute model location)
+                            |> Maybe.withDefault
                                 ( { model
                                     | errors = Nothing
                                     , messages = Nothing
-                                    , location = Just location
-                                    , route = Debug.log "SelectTab Route" (Route.toRoute location)
                                   }
-                                , Cmd.none
+                                , Navigation.modifyUrl (Route.defaultRoute model.token |> Route.toFragment)
                                 )
-                            )
-                        |> Maybe.withDefault
-                            ( { model
-                                | errors = Nothing
-                                , messages = Nothing
-                                , route = Route.defaultRoute model.token
-                              }
-                            , Navigation.modifyUrl (Route.defaultRoute model.token |> Route.toFragment)
-                            )
 
         TextInput task input ->
             Meld.init { model | errors = Nothing, messages = Nothing }
                 |> Meld.addTasks [ task input ]
                 |> Meld.send Results
+
+
+loadRoute : Model -> Location -> ( Model, Cmd Msg )
+loadRoute model location =
+    let
+        newRoute =
+            Route.toRoute location
+
+        ( newModel, newCmds ) =
+            case newRoute of
+                Route.Categories _ ->
+                    ( { model | category = Category.viewState newRoute model.category }
+                    , Cmd.none
+                    )
+
+                Route.Empty ->
+                    ( model
+                    , Navigation.modifyUrl (Route.defaultRoute model.token |> Route.toFragment)
+                    )
+
+                _ ->
+                    ( model, Cmd.none )
+    in
+    ( { newModel
+        | errors = Nothing
+        , messages = Nothing
+        , location = Just location
+        , route = newRoute
+      }
+    , newCmds
+    )
+
+
+routePrefix : Location -> String
+routePrefix location =
+    String.dropLeft 2 location.hash
+        |> String.split "/"
+        |> List.head
+        |> Maybe.map
+            (\s ->
+                if String.isEmpty s then
+                    ""
+                else
+                    "#/" ++ s
+            )
+        |> Maybe.withDefault ""
 
 
 subscriptions : Model -> Sub Msg
