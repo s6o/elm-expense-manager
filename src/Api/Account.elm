@@ -6,11 +6,9 @@ module Api.Account
         , save
         )
 
-import Api.Headers exposing (objectHeader, recordHeader, tokenHeader)
+import Api.Http as AHttp exposing (ApiPath(..))
 import DRec exposing (DError, DRec)
 import Dict
-import Http
-import HttpBuilder exposing (..)
 import Json.Decode
 import Manager.Account as Account exposing (Account(..))
 import Manager.Jwt as Jwt
@@ -20,18 +18,28 @@ import Model exposing (Model)
 import Task exposing (Task)
 
 
+apiPath : ApiPath
+apiPath =
+    ApiPath "/accounts"
+
+
 add : Meld Model Error Msg -> Task Error (Meld Model Error Msg)
 add meld =
+    let
+        drecFn f m =
+            Dict.get Account.defaultId (f m)
+                |> Maybe.map (\(Account drec) -> drec)
+    in
     Account.validate Account.defaultId meld
-        |> Task.andThen post
+        |> Task.andThen (AHttp.post apiPath (drecFn .accounts))
         |> Task.map
-            (\account ->
+            (\drec ->
                 let
                     taskModel ma =
                         { ma
                             | messages = Just "Saved."
                             , accounts =
-                                Dict.insert (Account.id account) account ma.accounts
+                                Dict.insert (Account.id (Account drec)) (Account drec) ma.accounts
                                     |> Dict.insert Account.defaultId (Account.empty <| Jwt.userId ma.claims)
                         }
                 in
@@ -41,7 +49,20 @@ add meld =
 
 read : Meld Model Error Msg -> Task Error (Meld Model Error Msg)
 read meld =
-    get meld
+    let
+        model =
+            Meld.model meld
+
+        (Account drec) =
+            Account.init
+
+        decoder =
+            DRec.decoder drec |> Json.Decode.map Account
+
+        params =
+            "mgr_id=eq." ++ (Basics.toString <| Jwt.userId model.claims)
+    in
+    AHttp.get (AHttp.apiPathParams params apiPath) decoder meld
         |> Task.map
             (\results ->
                 let
@@ -65,142 +86,54 @@ read meld =
 
 remove : Int -> Meld Model Error Msg -> Task Error (Meld Model Error Msg)
 remove accountId meld =
-    delete accountId meld
-        |> Task.map
-            (\dmeld ->
-                let
-                    model =
-                        Meld.model dmeld
+    let
+        model =
+            Meld.model meld
 
-                    taskModel ma =
-                        { ma
-                            | messages = Just "Moved to Trash."
-                            , accounts = Dict.remove accountId ma.accounts
-                        }
-                in
-                Meld.withMerge taskModel dmeld
+        params =
+            "pk_id=eq." ++ (accountId |> Basics.toString)
+    in
+    Dict.get accountId model.accounts
+        |> Maybe.map
+            (\_ ->
+                AHttp.delete (AHttp.apiPathParams params apiPath) meld
+                    |> Task.map
+                        (\dmeld ->
+                            let
+                                taskModel ma =
+                                    { ma
+                                        | messages = Just "Moved to Trash."
+                                        , accounts = Dict.remove accountId ma.accounts
+                                    }
+                            in
+                            Meld.withMerge taskModel dmeld
+                        )
+            )
+        |> Maybe.withDefault
+            ("Uknown account id: "
+                ++ toString accountId
+                |> EMsg
+                |> Task.fail
             )
 
 
 save : Int -> Meld Model Error Msg -> Task Error (Meld Model Error Msg)
 save accountId meld =
+    let
+        params =
+            "pk_id=eq." ++ (accountId |> Basics.toString)
+
+        drecFn f m =
+            Dict.get accountId (f m)
+                |> Maybe.map (\(Account drec) -> drec)
+    in
     Account.validate accountId meld
-        |> Task.andThen (patch accountId)
+        |> Task.andThen (AHttp.patch (AHttp.apiPathParams params apiPath) (drecFn .accounts))
         |> Task.map
             (\pmeld ->
                 let
-                    model =
-                        Meld.model pmeld
-
                     taskModel ma =
-                        { ma
-                            | accounts = model.accounts
-                            , messages = Just "Saved."
-                        }
+                        { ma | messages = Just "Saved." }
                 in
                 Meld.withMerge taskModel pmeld
             )
-
-
-get : Meld Model Error Msg -> Task Error (List Account)
-get meld =
-    let
-        model =
-            Meld.model meld
-
-        (Account drec) =
-            Account.init
-    in
-    model.apiBaseUrl
-        ++ ("/accounts?mgr_id=eq." ++ (Basics.toString <| Jwt.userId model.claims))
-        |> HttpBuilder.get
-        |> withHeaders (tokenHeader model.token)
-        |> withExpect
-            (Json.Decode.list (DRec.decoder drec |> Json.Decode.map Account)
-                |> Http.expectJson
-            )
-        |> HttpBuilder.toTask
-        |> Task.mapError Meld.EHttp
-
-
-patch : Int -> Meld Model Error Msg -> Task Error (Meld Model Error Msg)
-patch accountId meld =
-    let
-        model =
-            Meld.model meld
-
-        fail msg =
-            msg
-                |> EMsg
-                |> Task.fail
-    in
-    Dict.get accountId model.accounts
-        |> Maybe.map
-            (\(Account drec) ->
-                model.apiBaseUrl
-                    ++ ("/accounts?pk_id=eq." ++ (accountId |> Basics.toString))
-                    |> HttpBuilder.patch
-                    |> withHeaders (tokenHeader model.token)
-                    |> withJsonBody (DRec.encoder drec)
-                    |> withExpect Http.expectString
-                    |> HttpBuilder.toTask
-                    |> Task.mapError Meld.EHttp
-                    |> Task.map (\_ -> meld)
-            )
-        |> Maybe.withDefault (fail <| "Incorrect account id: " ++ Basics.toString accountId)
-
-
-post : Meld Model Error Msg -> Task Error Account
-post meld =
-    let
-        model =
-            Meld.model meld
-
-        fail msg =
-            msg
-                |> EMsg
-                |> Task.fail
-    in
-    Dict.get Account.defaultId model.accounts
-        |> Maybe.map
-            (\(Account drec) ->
-                model.apiBaseUrl
-                    ++ "/accounts"
-                    |> HttpBuilder.post
-                    |> withHeaders (objectHeader ++ recordHeader ++ tokenHeader model.token)
-                    |> withJsonBody (DRec.encoder drec)
-                    |> withExpect
-                        (DRec.decoder drec
-                            |> Json.Decode.map Account
-                            |> Http.expectJson
-                        )
-                    |> HttpBuilder.toTask
-                    |> Task.mapError Meld.EHttp
-            )
-        |> Maybe.withDefault (fail <| "No new account record.")
-
-
-delete : Int -> Meld Model Error Msg -> Task Error (Meld Model Error Msg)
-delete accountId meld =
-    let
-        model =
-            Meld.model meld
-
-        fail msg =
-            msg
-                |> EMsg
-                |> Task.fail
-    in
-    Dict.get accountId model.accounts
-        |> Maybe.map
-            (\_ ->
-                model.apiBaseUrl
-                    ++ ("/accounts?pk_id=eq." ++ (accountId |> Basics.toString))
-                    |> HttpBuilder.delete
-                    |> withHeaders (tokenHeader model.token)
-                    |> withExpect Http.expectString
-                    |> HttpBuilder.toTask
-                    |> Task.mapError Meld.EHttp
-                    |> Task.map (\_ -> meld)
-            )
-        |> Maybe.withDefault (fail <| "Incorrect account id: " ++ Basics.toString accountId)
