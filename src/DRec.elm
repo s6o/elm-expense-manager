@@ -960,12 +960,13 @@ toList toValue rf =
 
     update : Maybe String -> DRec Field -> DRec Field
     update mv drec =
-        DRec.set Token (DRec.fromMaybe DRec.fromString) mv drec
+        DRec.setWith Token (DRec.fromMaybe DRec.fromString >> Just) mv drec
 
     token : DRec Field -> Maybe String
     token drec =
         DRec.get Token drec
             |> DRec.toMaybe DRec.toString
+            |> DRec.withDefault Nothing
 
 -}
 toMaybe : (Result DError (DField a) -> Result DError b) -> Result DError (DField a) -> Result DError (Maybe b)
