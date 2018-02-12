@@ -4,11 +4,8 @@ module Api.Currency
         , save
         )
 
-import Api.Headers exposing (objectHeader, tokenHeader)
+import Api.Http as AHttp exposing (ApiPath(..))
 import DRec exposing (DRec)
-import Http
-import HttpBuilder exposing (..)
-import Json.Decode
 import Manager.Currency as Currency exposing (Currency(..))
 import Meld exposing (Error, Meld)
 import Messages exposing (Msg)
@@ -16,14 +13,26 @@ import Model exposing (Model)
 import Task exposing (Task)
 
 
+apiPath : ApiPath
+apiPath =
+    ApiPath "/currency"
+
+
 read : Meld Model Error Msg -> Task Error (Meld Model Error Msg)
 read meld =
-    get meld
+    let
+        model =
+            Meld.model meld
+
+        (Currency drec) =
+            model.currency
+    in
+    AHttp.getSingle apiPath (DRec.decoder drec) meld
         |> Task.map
-            (\c ->
+            (\crec ->
                 let
                     taskModel ma =
-                        { ma | currency = c }
+                        { ma | currency = Currency crec }
                 in
                 Meld.withMerge taskModel meld
             )
@@ -31,57 +40,24 @@ read meld =
 
 save : Meld Model Error Msg -> Task Error (Meld Model Error Msg)
 save meld =
+    let
+        model =
+            Meld.model meld
+
+        (Currency drec) =
+            model.currency
+
+        drecFn f m =
+            f m
+                |> (\(Currency drec) -> Just drec)
+    in
     Currency.validate meld
-        |> Task.andThen patch
+        |> Task.andThen (AHttp.patch apiPath (drecFn .currency))
         |> Task.map
             (\pmeld ->
                 let
-                    model =
-                        Meld.model pmeld
-
                     taskModel ma =
-                        { ma
-                            | messages = Just "Saved."
-                            , currency = model.currency
-                        }
+                        { ma | messages = Just "Saved." }
                 in
                 Meld.withMerge taskModel pmeld
             )
-
-
-get : Meld Model Error Msg -> Task Error Currency
-get meld =
-    let
-        model =
-            Meld.model meld
-
-        (Currency drec) =
-            model.currency
-    in
-    model.apiBaseUrl
-        ++ "/currency"
-        |> HttpBuilder.get
-        |> withHeaders (objectHeader ++ tokenHeader model.token)
-        |> withExpect (Http.expectJson (DRec.decoder drec |> Json.Decode.map Currency))
-        |> HttpBuilder.toTask
-        |> Task.mapError Meld.EHttp
-
-
-patch : Meld Model Error Msg -> Task Error (Meld Model Error Msg)
-patch meld =
-    let
-        model =
-            Meld.model meld
-
-        (Currency drec) =
-            model.currency
-    in
-    model.apiBaseUrl
-        ++ ("/currency?iso_code=eq." ++ Currency.isoCode model.currency)
-        |> HttpBuilder.patch
-        |> withHeaders (tokenHeader model.token)
-        |> withJsonBody (DRec.encoder drec)
-        |> withExpect Http.expectString
-        |> HttpBuilder.toTask
-        |> Task.mapError Meld.EHttp
-        |> Task.map (\_ -> meld)
