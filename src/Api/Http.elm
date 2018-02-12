@@ -7,6 +7,7 @@ module Api.Http
         , getSingle
         , patch
         , post
+        , postMap
         )
 
 {-| Basic HTTP operations for PostgREST
@@ -131,6 +132,31 @@ post (ApiPath path) drecFn meld =
                     |> withHeaders (objectHeader ++ recordHeader ++ tokenHeader model.token)
                     |> withJsonBody (DRec.encoder drec)
                     |> withExpect (DRec.decoder drec |> Http.expectJson)
+                    |> HttpBuilder.toTask
+                    |> Task.mapError Meld.EHttp
+            )
+        |> Maybe.withDefault
+            ("Record for Api.Http.post not found"
+                |> EMsg
+                |> Task.fail
+            )
+
+
+postMap : ApiPath -> (Parent m -> Maybe (DRec a)) -> Decoder b -> Meld (Parent m) Error msg -> Task Error b
+postMap (ApiPath path) drecFn decoder meld =
+    let
+        model =
+            Meld.model meld
+    in
+    drecFn model
+        |> Maybe.map
+            (\drec ->
+                model.apiBaseUrl
+                    ++ path
+                    |> HttpBuilder.post
+                    |> withHeaders (objectHeader ++ recordHeader ++ tokenHeader model.token)
+                    |> withJsonBody (DRec.encoder drec)
+                    |> withExpect (Http.expectJson decoder)
                     |> HttpBuilder.toTask
                     |> Task.mapError Meld.EHttp
             )
