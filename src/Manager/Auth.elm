@@ -2,12 +2,14 @@ module Manager.Auth
     exposing
         ( Auth(..)
         , AuthField(..)
-        , Token
-        , decoder
+        , JwtToken(..)
+        , TokenFields(..)
         , email
         , fieldInput
         , init
+        , jwtToken
         , pass
+        , token
         , validate
         )
 
@@ -16,6 +18,28 @@ import Json.Decode exposing (Decoder, field)
 import Json.Decode.Extra exposing ((|:))
 import Meld exposing (Error(..), Meld)
 import Task exposing (Task)
+
+
+type JwtToken
+    = JwtToken (DRec TokenFields)
+
+
+type TokenFields
+    = Token
+
+
+jwtToken : JwtToken
+jwtToken =
+    DRec.init
+        |> DRec.field Token DString
+        |> JwtToken
+
+
+token : JwtToken -> Maybe String
+token (JwtToken drec) =
+    DRec.get Token drec
+        |> DRec.toString
+        |> Result.toMaybe
 
 
 type alias Parent m =
@@ -29,16 +53,6 @@ type Auth
 type AuthField
     = Email
     | Pass
-
-
-type alias Token =
-    { token : String }
-
-
-decoder : Decoder Token
-decoder =
-    Json.Decode.succeed Token
-        |: field "token" Json.Decode.string
 
 
 init : Auth

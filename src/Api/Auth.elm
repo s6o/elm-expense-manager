@@ -4,12 +4,11 @@ module Api.Auth
         , logout
         )
 
-import Api.Headers exposing (objectHeader)
+import Api.Http as AHttp exposing (ApiPath(..))
 import Api.Init exposing (initialRequests)
 import DRec
-import Http
-import HttpBuilder exposing (..)
-import Manager.Auth as Auth exposing (Auth(..), Token)
+import Json.Decode
+import Manager.Auth as Auth exposing (Auth(..), JwtToken(..))
 import Manager.Jwt as Jwt exposing (Jwt(..))
 import Meld exposing (Error, Meld)
 import Messages exposing (Msg(..))
@@ -21,31 +20,52 @@ import Task exposing (Task)
 
 login : Meld Model Error Msg -> Task Error (Meld Model Error Msg)
 login meld =
-    Auth.validate meld
-        |> Task.andThen postCredentials
-        |> Task.map
-            (\result ->
-                let
-                    taskModel ma =
-                        let
-                            (Auth drec) =
-                                ma.auth
-                        in
-                        { ma
-                            | route = Route.Transactions
-                            , token = Just result.token
-                            , auth = DRec.clear drec |> Auth
-                            , claims = Jwt.init (Just result.token)
-                        }
+    let
+        model =
+            Meld.model meld
 
-                    storeToken ma =
-                        ma.token
-                            |> Maybe.map Ports.txToken
-                            |> Maybe.withDefault Cmd.none
-                in
-                Meld.withMerge taskModel meld
-                    |> Meld.withCmds [ storeToken, initialRequests ]
-            )
+        (Auth drec) =
+            model.auth
+
+        (JwtToken trec) =
+            Auth.jwtToken
+
+        tokenDecoder =
+            DRec.decoder trec |> Json.Decode.map JwtToken
+
+        drecFn f m =
+            f m |> (\(Auth drec) -> Just drec)
+    in
+    if DRec.isEmpty drec then
+        "Model's `auth` member is not set."
+            |> Meld.EMsg
+            |> Task.fail
+    else
+        Auth.validate meld
+            |> Task.andThen (AHttp.postMap (ApiPath "/rpc/login") (drecFn .auth) tokenDecoder)
+            |> Task.map
+                (\jwtToken ->
+                    let
+                        taskModel ma =
+                            let
+                                (Auth adrec) =
+                                    ma.auth
+                            in
+                            { ma
+                                | route = Route.Transactions
+                                , token = Auth.token jwtToken
+                                , auth = DRec.clear adrec |> Auth
+                                , claims = Auth.token jwtToken |> Jwt.init
+                            }
+
+                        storeToken ma =
+                            ma.token
+                                |> Maybe.map Ports.txToken
+                                |> Maybe.withDefault Cmd.none
+                    in
+                    Meld.withMerge taskModel meld
+                        |> Meld.withCmds [ storeToken, initialRequests ]
+                )
 
 
 logout : Meld Model Error Msg -> Task Error (Meld Model Error Msg)
@@ -75,27 +95,3 @@ logout meld =
                 Meld.withMerge taskModel meld
                     |> Meld.withCmds [ clearStorage ]
             )
-
-
-postCredentials : Meld Model Error Msg -> Task Error Token
-postCredentials meld =
-    let
-        model =
-            Meld.model meld
-
-        (Auth drec) =
-            model.auth
-    in
-    if DRec.isEmpty drec then
-        "Model's `auth` member is not set."
-            |> Meld.EMsg
-            |> Task.fail
-    else
-        model.apiBaseUrl
-            ++ "/rpc/login"
-            |> HttpBuilder.post
-            |> withHeaders objectHeader
-            |> withJsonBody (DRec.encoder drec)
-            |> withExpect (Http.expectJson Auth.decoder)
-            |> HttpBuilder.toTask
-            |> Task.mapError Meld.EHttp
