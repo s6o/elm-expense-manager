@@ -18,7 +18,7 @@ import Route exposing (Route(..))
 import Task exposing (Task)
 
 
-login : Meld Model Error Msg -> Task Error (Meld Model Error Msg)
+login : Meld Model Msg -> Task (Error Model) (Meld Model Msg)
 login meld =
     let
         model =
@@ -38,7 +38,7 @@ login meld =
     in
     if DRec.isEmpty drec then
         "Model's `auth` member is not set."
-            |> Meld.EMsg
+            |> Meld.EMsg model
             |> Task.fail
     else
         Auth.validate meld
@@ -68,7 +68,7 @@ login meld =
                 )
 
 
-logout : Meld Model Error Msg -> Task Error (Meld Model Error Msg)
+logout : Meld Model Msg -> Task (Error Model) (Meld Model Msg)
 logout meld =
     Task.succeed meld
         |> Task.map

@@ -58,7 +58,7 @@ account mdl currency baseIndex account =
                 mdl
                 (baseIndex + 0)
                 account
-                (Request [ Api.Account.save (Account.id account) ])
+                (Act [ Api.Account.save (Account.id account) ])
             ]
         , Options.div
             []
@@ -67,7 +67,7 @@ account mdl currency baseIndex account =
                 currency
                 (baseIndex + 1)
                 account
-                (Request [ Api.Account.save (Account.id account) ])
+                (Act [ Api.Account.save (Account.id account) ])
             ]
         , Options.div
             []
@@ -75,7 +75,7 @@ account mdl currency baseIndex account =
                 mdl
                 (baseIndex + 2)
                 account
-                (Request [ Api.Account.save (Account.id account) ])
+                (Act [ Api.Account.save (Account.id account) ])
             ]
         , Options.div
             []
@@ -83,7 +83,7 @@ account mdl currency baseIndex account =
                 mdl
                 (baseIndex + 3)
                 account
-                (Request [ Api.Account.save (Account.id account) ])
+                (Act [ Api.Account.save (Account.id account) ])
             ]
         , Options.div
             [ css "min-height" "50px"
@@ -99,7 +99,7 @@ account mdl currency baseIndex account =
                     [ Button.colored
                     , Button.raised
                     , Button.ripple
-                    , Options.onClick <| Request [ Api.Account.remove (Account.id account) ]
+                    , Options.onClick <| Act [ Api.Account.remove (Account.id account) ]
                     ]
                     [ text "Remove" ]
                 ]
@@ -114,7 +114,7 @@ account mdl currency baseIndex account =
                     [ Button.colored
                     , Button.raised
                     , Button.ripple
-                    , Options.onClick <| Request [ Api.Account.save (Account.id account) ]
+                    , Options.onClick <| Act [ Api.Account.save (Account.id account) ]
                     ]
                     [ text "Save" ]
                 ]
@@ -214,7 +214,7 @@ addAccount mdl currency index account =
                 mdl
                 (index + 1)
                 account
-                (Request [ Api.Account.add ])
+                (Act [ Api.Account.add ])
             ]
         , Options.div
             []
@@ -223,7 +223,7 @@ addAccount mdl currency index account =
                 currency
                 (index + 2)
                 account
-                (Request [ Api.Account.add ])
+                (Act [ Api.Account.add ])
             ]
         , Options.div
             []
@@ -231,7 +231,7 @@ addAccount mdl currency index account =
                 mdl
                 (index + 3)
                 account
-                (Request [ Api.Account.add ])
+                (Act [ Api.Account.add ])
             ]
         , Options.div
             []
@@ -239,7 +239,7 @@ addAccount mdl currency index account =
                 mdl
                 (index + 4)
                 account
-                (Request [ Api.Account.add ])
+                (Act [ Api.Account.add ])
             ]
         , Options.div
             [ css "text-align" "right"
@@ -251,7 +251,7 @@ addAccount mdl currency index account =
                 [ Button.colored
                 , Button.raised
                 , Button.ripple
-                , Options.onClick <| Request [ Api.Account.add ]
+                , Options.onClick <| Act [ Api.Account.add ]
                 ]
                 [ text "Add" ]
             ]

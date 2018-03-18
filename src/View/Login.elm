@@ -35,7 +35,7 @@ view mdl auth =
                     |> Textfield.value
                 , TextInput (Auth.fieldInput Auth.Email)
                     |> Options.onInput
-                , KeyEvent.onEnter <| Request [ Api.Auth.login ]
+                , KeyEvent.onEnter <| Act [ Api.Auth.login ]
                 ]
                 []
             ]
@@ -52,7 +52,7 @@ view mdl auth =
                     |> Textfield.value
                 , TextInput (Auth.fieldInput Auth.Pass)
                     |> Options.onInput
-                , KeyEvent.onEnter <| Request [ Api.Auth.login ]
+                , KeyEvent.onEnter <| Act [ Api.Auth.login ]
                 ]
                 []
             ]
@@ -66,7 +66,7 @@ view mdl auth =
                 [ Button.colored
                 , Button.raised
                 , Button.ripple
-                , Options.onClick <| Request [ Api.Auth.login ]
+                , Options.onClick <| Act [ Api.Auth.login ]
                 ]
                 [ text "Login" ]
             ]

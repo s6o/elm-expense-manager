@@ -108,7 +108,7 @@ parentPath (Category drec) =
         |> Result.withDefault ""
 
 
-nameInput : NameAction -> String -> Meld (Parent m) Error msg -> Task Error (Meld (Parent m) Error msg)
+nameInput : NameAction -> String -> Meld (Parent m) msg -> Task (Error (Parent m)) (Meld (Parent m) msg)
 nameInput action value meld =
     let
         model =
@@ -169,7 +169,7 @@ nameInput action value meld =
         |> Maybe.withDefault (Task.succeed meld)
 
 
-select : Int -> Meld (Parent m) Error msg -> Task Error (Meld (Parent m) Error msg)
+select : Int -> Meld (Parent m) msg -> Task (Error (Parent m)) (Meld (Parent m) msg)
 select categoryId meld =
     let
         model =
@@ -214,7 +214,7 @@ select categoryId meld =
         |> Maybe.withDefault (Task.succeed meld)
 
 
-toggle : Int -> Bool -> Meld (Parent m) Error msg -> Task Error (Meld (Parent m) Error msg)
+toggle : Int -> Bool -> Meld (Parent m) msg -> Task (Error (Parent m)) (Meld (Parent m) msg)
 toggle categoryId value meld =
     let
         model =
@@ -251,7 +251,7 @@ toggle categoryId value meld =
         |> Maybe.withDefault (Task.succeed meld)
 
 
-unselect : Meld (Parent m) Error msg -> Task Error (Meld (Parent m) Error msg)
+unselect : Meld (Parent m) msg -> Task (Error (Parent m)) (Meld (Parent m) msg)
 unselect meld =
     let
         model =
@@ -296,7 +296,7 @@ unselect meld =
         |> Maybe.withDefault (Task.succeed meld)
 
 
-validate : Meld (Parent m) Error msg -> Task Error (Meld (Parent m) Error msg)
+validate : Meld (Parent m) msg -> Task (Error (Parent m)) (Meld (Parent m) msg)
 validate meld =
     let
         model =
@@ -304,7 +304,7 @@ validate meld =
 
         fail msg =
             msg
-                |> EMsg
+                |> EMsg model
                 |> Task.fail
     in
     Task.succeed meld

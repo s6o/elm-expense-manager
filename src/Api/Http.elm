@@ -45,7 +45,7 @@ apiPathParams params (ApiPath path) =
         |> ApiPath
 
 
-delete : ApiPath -> Meld (Parent m) Error msg -> Task Error (Meld (Parent m) Error msg)
+delete : ApiPath -> Meld (Parent m) msg -> Task (Error (Parent m)) (Meld (Parent m) msg)
 delete (ApiPath path) meld =
     let
         model =
@@ -57,11 +57,11 @@ delete (ApiPath path) meld =
         |> withHeaders (tokenHeader model.token)
         |> withExpect Http.expectString
         |> HttpBuilder.toTask
-        |> Task.mapError Meld.EHttp
+        |> Task.mapError (Meld.EHttp model)
         |> Task.map (\_ -> meld)
 
 
-get : ApiPath -> Decoder a -> Meld (Parent m) Error msg -> Task Error (List a)
+get : ApiPath -> Decoder a -> Meld (Parent m) msg -> Task (Error (Parent m)) (List a)
 get (ApiPath path) decoder meld =
     let
         model =
@@ -73,10 +73,10 @@ get (ApiPath path) decoder meld =
         |> withHeaders (tokenHeader model.token)
         |> withExpect (Http.expectJson (Json.Decode.list decoder))
         |> HttpBuilder.toTask
-        |> Task.mapError Meld.EHttp
+        |> Task.mapError (Meld.EHttp model)
 
 
-getSingle : ApiPath -> Decoder a -> Meld (Parent m) Error msg -> Task Error a
+getSingle : ApiPath -> Decoder a -> Meld (Parent m) msg -> Task (Error (Parent m)) a
 getSingle (ApiPath path) decoder meld =
     let
         model =
@@ -88,10 +88,10 @@ getSingle (ApiPath path) decoder meld =
         |> withHeaders (objectHeader ++ tokenHeader model.token)
         |> withExpect (Http.expectJson decoder)
         |> HttpBuilder.toTask
-        |> Task.mapError Meld.EHttp
+        |> Task.mapError (Meld.EHttp model)
 
 
-patch : ApiPath -> (Parent m -> Maybe (DRec a)) -> Meld (Parent m) Error msg -> Task Error (Meld (Parent m) Error msg)
+patch : ApiPath -> (Parent m -> Maybe (DRec a)) -> Meld (Parent m) msg -> Task (Error (Parent m)) (Meld (Parent m) msg)
 patch (ApiPath path) drecFn meld =
     let
         model =
@@ -107,17 +107,17 @@ patch (ApiPath path) drecFn meld =
                     |> withJsonBody (DRec.encoder drec)
                     |> withExpect Http.expectString
                     |> HttpBuilder.toTask
-                    |> Task.mapError Meld.EHttp
+                    |> Task.mapError (Meld.EHttp model)
                     |> Task.map (\_ -> meld)
             )
         |> Maybe.withDefault
             ("Record for Api.Http.patch not found"
-                |> EMsg
+                |> EMsg model
                 |> Task.fail
             )
 
 
-post : ApiPath -> (Parent m -> Maybe (DRec a)) -> Meld (Parent m) Error msg -> Task Error (DRec a)
+post : ApiPath -> (Parent m -> Maybe (DRec a)) -> Meld (Parent m) msg -> Task (Error (Parent m)) (DRec a)
 post (ApiPath path) drecFn meld =
     let
         model =
@@ -133,16 +133,16 @@ post (ApiPath path) drecFn meld =
                     |> withJsonBody (DRec.encoder drec)
                     |> withExpect (DRec.decoder drec |> Http.expectJson)
                     |> HttpBuilder.toTask
-                    |> Task.mapError Meld.EHttp
+                    |> Task.mapError (Meld.EHttp model)
             )
         |> Maybe.withDefault
             ("Record for Api.Http.post not found"
-                |> EMsg
+                |> EMsg model
                 |> Task.fail
             )
 
 
-postMap : ApiPath -> (Parent m -> Maybe (DRec a)) -> Decoder b -> Meld (Parent m) Error msg -> Task Error b
+postMap : ApiPath -> (Parent m -> Maybe (DRec a)) -> Decoder b -> Meld (Parent m) msg -> Task (Error (Parent m)) b
 postMap (ApiPath path) drecFn decoder meld =
     let
         model =
@@ -158,10 +158,10 @@ postMap (ApiPath path) drecFn decoder meld =
                     |> withJsonBody (DRec.encoder drec)
                     |> withExpect (Http.expectJson decoder)
                     |> HttpBuilder.toTask
-                    |> Task.mapError Meld.EHttp
+                    |> Task.mapError (Meld.EHttp model)
             )
         |> Maybe.withDefault
             ("Record for Api.Http.post not found"
-                |> EMsg
+                |> EMsg model
                 |> Task.fail
             )

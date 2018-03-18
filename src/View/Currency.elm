@@ -34,7 +34,7 @@ view mdl currency =
                     |> Textfield.value
                 , TextInput (Currency.fieldInput Currency.IsoCode)
                     |> Options.onInput
-                , KeyEvent.onEnter <| Request [ Api.Currency.save ]
+                , KeyEvent.onEnter <| Act [ Api.Currency.save ]
                 ]
                 []
             ]
@@ -53,7 +53,7 @@ view mdl currency =
                     |> Textfield.value
                 , TextInput (Currency.fieldInput Currency.SubUnitRatio)
                     |> Options.onInput
-                , KeyEvent.onEnter <| Request [ Api.Currency.save ]
+                , KeyEvent.onEnter <| Act [ Api.Currency.save ]
                 ]
                 []
             ]
@@ -70,7 +70,7 @@ view mdl currency =
                     |> Textfield.value
                 , TextInput (Currency.fieldInput Currency.Symbol)
                     |> Options.onInput
-                , KeyEvent.onEnter <| Request [ Api.Currency.save ]
+                , KeyEvent.onEnter <| Act [ Api.Currency.save ]
                 ]
                 []
             ]
@@ -87,7 +87,7 @@ view mdl currency =
                     |> Textfield.value
                 , TextInput (Currency.fieldInput Currency.DecimalSeparator)
                     |> Options.onInput
-                , KeyEvent.onEnter <| Request [ Api.Currency.save ]
+                , KeyEvent.onEnter <| Act [ Api.Currency.save ]
                 ]
                 []
             ]
@@ -104,7 +104,7 @@ view mdl currency =
                     |> Textfield.value
                 , TextInput (Currency.fieldInput Currency.ThousandSeparator)
                     |> Options.onInput
-                , KeyEvent.onEnter <| Request [ Api.Currency.save ]
+                , KeyEvent.onEnter <| Act [ Api.Currency.save ]
                 ]
                 []
             ]
@@ -118,7 +118,7 @@ view mdl currency =
                 [ Button.colored
                 , Button.raised
                 , Button.ripple
-                , Options.onClick <| Request [ Api.Currency.save ]
+                , Options.onClick <| Act [ Api.Currency.save ]
                 ]
                 [ text "Save" ]
             ]

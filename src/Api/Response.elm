@@ -31,7 +31,7 @@ decoder =
         |: field "message" Json.Decode.string
 
 
-errorMessage : Meld.Error -> Maybe String
+errorMessage : Meld.Error m -> Maybe String
 errorMessage merr =
     case Meld.httpError merr of
         Nothing ->
@@ -48,7 +48,7 @@ errorMessage merr =
                     Nothing
 
 
-isServerError : Meld.Error -> Bool
+isServerError : Meld.Error m -> Bool
 isServerError merr =
     case Meld.httpError merr of
         Nothing ->
@@ -63,7 +63,7 @@ isServerError merr =
                     False
 
 
-isUnauthorized : Meld.Error -> Bool
+isUnauthorized : Meld.Error m -> Bool
 isUnauthorized merr =
     case Meld.httpError merr of
         Nothing ->

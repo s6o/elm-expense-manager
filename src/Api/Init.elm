@@ -28,7 +28,7 @@ initialRequests model =
                         ]
                 in
                 Task.perform
-                    Request
+                    Act
                     (Task.succeed initialTasks)
             )
         |> Maybe.withDefault Cmd.none

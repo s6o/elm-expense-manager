@@ -132,7 +132,7 @@ categories mdl mgmt =
                     , Button.raised
                     , Button.ripple
 
-                    --                , Options.onClick <| Request [ Api.Account.add ]
+                    --                , Options.onClick <| Act [ Api.Account.add ]
                     ]
                     [ text "Remove" ]
                 ]
@@ -180,7 +180,7 @@ add mdl index category =
                 , Button.raised
                 , Button.ripple
 
-                --                , Options.onClick <| Request [ Api.Account.add ]
+                --                , Options.onClick <| Act [ Api.Account.add ]
                 ]
                 [ text "Add" ]
             ]
@@ -272,7 +272,7 @@ edit mdl category =
                     , Button.raised
                     , Button.ripple
 
-                    --                , Options.onClick <| Request [ Api.Account.add ]
+                    --                , Options.onClick <| Act [ Api.Account.add ]
                     ]
                     [ text "Save" ]
                 ]

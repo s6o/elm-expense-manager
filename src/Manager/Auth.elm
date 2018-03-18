@@ -14,8 +14,6 @@ module Manager.Auth
         )
 
 import DRec exposing (DError, DRec, DType(..))
-import Json.Decode exposing (Decoder, field)
-import Json.Decode.Extra exposing ((|:))
 import Meld exposing (Error(..), Meld)
 import Task exposing (Task)
 
@@ -77,7 +75,7 @@ pass (Auth drec) =
         |> Result.withDefault ""
 
 
-fieldInput : AuthField -> String -> Meld (Parent m) Error msg -> Task Error (Meld (Parent m) Error msg)
+fieldInput : AuthField -> String -> Meld (Parent m) msg -> Task (Error (Parent m)) (Meld (Parent m) msg)
 fieldInput field value meld =
     let
         model =
@@ -93,7 +91,7 @@ fieldInput field value meld =
         |> Task.succeed
 
 
-validate : Meld (Parent m) Error msg -> Task Error (Meld (Parent m) Error msg)
+validate : Meld (Parent m) msg -> Task (Error (Parent m)) (Meld (Parent m) msg)
 validate meld =
     let
         model =
@@ -104,7 +102,7 @@ validate meld =
 
         credsFail =
             "Authentication credentials not set."
-                |> EMsg
+                |> EMsg model
                 |> Task.fail
     in
     if DRec.isEmpty drec then

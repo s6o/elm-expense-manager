@@ -123,7 +123,7 @@ bankName (Account drec) =
         |> Result.withDefault ""
 
 
-fieldInput : FieldInput -> Int -> AccountField -> String -> Meld (Parent m) Error msg -> Task Error (Meld (Parent m) Error msg)
+fieldInput : FieldInput -> Int -> AccountField -> String -> Meld (Parent m) msg -> Task (Error (Parent m)) (Meld (Parent m) msg)
 fieldInput action accountId field value meld =
     let
         model =
@@ -189,7 +189,7 @@ validateBalance action currency value =
                 |> Maybe.map DRec.fromInt
 
 
-validate : Int -> Meld (Parent m) Error msg -> Task Error (Meld (Parent m) Error msg)
+validate : Int -> Meld (Parent m) msg -> Task (Error (Parent m)) (Meld (Parent m) msg)
 validate accountId meld =
     let
         model =
@@ -197,7 +197,7 @@ validate accountId meld =
 
         fail msg =
             msg
-                |> EMsg
+                |> EMsg model
                 |> Task.fail
     in
     Dict.get accountId model.accounts

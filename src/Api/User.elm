@@ -16,7 +16,7 @@ import Model exposing (Model)
 import Task exposing (Task)
 
 
-read : Meld Model Error Msg -> Task Error (Meld Model Error Msg)
+read : Meld Model Msg -> Task (Error Model) (Meld Model Msg)
 read meld =
     get meld
         |> Task.map
@@ -29,7 +29,7 @@ read meld =
             )
 
 
-get : Meld Model Error Msg -> Task Error User
+get : Meld Model Msg -> Task (Error Model) User
 get meld =
     let
         model =
@@ -44,4 +44,4 @@ get meld =
         |> withHeaders (objectHeader ++ tokenHeader model.token)
         |> withExpect (Http.expectJson (DRec.decoder drec |> Json.Decode.map User))
         |> HttpBuilder.toTask
-        |> Task.mapError Meld.EHttp
+        |> Task.mapError (Meld.EHttp model)

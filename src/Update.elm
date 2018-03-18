@@ -82,23 +82,18 @@ update msg model =
         Act tasks ->
             Meld.init model
                 |> Meld.addTasks tasks
-                |> Meld.send Results
+                |> Meld.send Responses
 
         ActSeq tasks ->
             Meld.init model
                 |> Meld.addTasks tasks
-                |> Meld.sequence Results
+                |> Meld.sequence Responses
 
         IgnoreKey ->
             ( model, Cmd.none )
 
         Mdl mm ->
             Material.update Mdl mm model
-
-        Request tasks ->
-            Meld.init model
-                |> Meld.addTasks tasks
-                |> Meld.send Responses
 
         Responses result ->
             case result of
@@ -108,7 +103,7 @@ update msg model =
                 Err meldError ->
                     let
                         _ =
-                            Debug.log "Request Error" meldError
+                            Debug.log "Action Error" meldError
                     in
                     ( { model
                         | errors =
@@ -128,23 +123,6 @@ update msg model =
                             Meld.init model
                                 |> Meld.addTasks [ Api.Auth.logout ]
                                 |> Meld.cmds Responses
-                    )
-
-        Results result ->
-            case result of
-                Ok meld ->
-                    Meld.update model meld
-
-                Err meldError ->
-                    let
-                        _ =
-                            Debug.log "Action Error" meldError
-                    in
-                    ( { model
-                        | errors = Just <| Meld.errorMessage meldError
-                        , messages = Nothing
-                      }
-                    , Cmd.none
                     )
 
         SelectTab mlocation ->
@@ -181,7 +159,7 @@ update msg model =
         TextInput task input ->
             Meld.init { model | errors = Nothing, messages = Nothing }
                 |> Meld.addTasks [ task input ]
-                |> Meld.send Results
+                |> Meld.send Responses
 
 
 loadRoute : Model -> Location -> ( Model, Cmd Msg )

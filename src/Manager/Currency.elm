@@ -86,7 +86,7 @@ thousandSeparator (Currency drec) =
         |> Result.withDefault ""
 
 
-fieldInput : CurrencyField -> String -> Meld (Parent m) Error msg -> Task Error (Meld (Parent m) Error msg)
+fieldInput : CurrencyField -> String -> Meld (Parent m) msg -> Task (Error (Parent m)) (Meld (Parent m) msg)
 fieldInput field value meld =
     let
         model =
@@ -194,7 +194,7 @@ validateNumerics currency value =
     Regex.replace Regex.All (Regex.regex numRe) (\_ -> "") value
 
 
-validate : Meld (Parent m) Error msg -> Task Error (Meld (Parent m) Error msg)
+validate : Meld (Parent m) msg -> Task (Error (Parent m)) (Meld (Parent m) msg)
 validate meld =
     let
         model =
@@ -205,7 +205,7 @@ validate meld =
 
         fail msg =
             msg
-                |> EMsg
+                |> EMsg model
                 |> Task.fail
     in
     if DRec.isEmpty drec then

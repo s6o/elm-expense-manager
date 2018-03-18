@@ -18,7 +18,7 @@ apiPath =
     ApiPath "/currency"
 
 
-read : Meld Model Error Msg -> Task Error (Meld Model Error Msg)
+read : Meld Model Msg -> Task (Error Model) (Meld Model Msg)
 read meld =
     let
         model =
@@ -38,7 +38,7 @@ read meld =
             )
 
 
-save : Meld Model Error Msg -> Task Error (Meld Model Error Msg)
+save : Meld Model Msg -> Task (Error Model) (Meld Model Msg)
 save meld =
     let
         model =

@@ -23,7 +23,7 @@ apiPath =
     ApiPath "/accounts"
 
 
-add : Meld Model Error Msg -> Task Error (Meld Model Error Msg)
+add : Meld Model Msg -> Task (Error Model) (Meld Model Msg)
 add meld =
     let
         drecFn f m =
@@ -47,7 +47,7 @@ add meld =
             )
 
 
-read : Meld Model Error Msg -> Task Error (Meld Model Error Msg)
+read : Meld Model Msg -> Task (Error Model) (Meld Model Msg)
 read meld =
     let
         model =
@@ -84,7 +84,7 @@ read meld =
             )
 
 
-remove : Int -> Meld Model Error Msg -> Task Error (Meld Model Error Msg)
+remove : Int -> Meld Model Msg -> Task (Error Model) (Meld Model Msg)
 remove accountId meld =
     let
         model =
@@ -112,12 +112,12 @@ remove accountId meld =
         |> Maybe.withDefault
             ("Uknown account id: "
                 ++ toString accountId
-                |> EMsg
+                |> EMsg model
                 |> Task.fail
             )
 
 
-save : Int -> Meld Model Error Msg -> Task Error (Meld Model Error Msg)
+save : Int -> Meld Model Msg -> Task (Error Model) (Meld Model Msg)
 save accountId meld =
     let
         params =
