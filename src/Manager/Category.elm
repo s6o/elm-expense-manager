@@ -17,6 +17,7 @@ module Manager.Category
         , sortWithName
         , toggle
         , unselect
+        , validate
         , viewState
         )
 
@@ -293,6 +294,20 @@ unselect meld =
                     |> Task.succeed
             )
         |> Maybe.withDefault (Task.succeed meld)
+
+
+validate : Meld (Parent m) Error msg -> Task Error (Meld (Parent m) Error msg)
+validate meld =
+    let
+        model =
+            Meld.model meld
+
+        fail msg =
+            msg
+                |> EMsg
+                |> Task.fail
+    in
+    Task.succeed meld
 
 
 viewState : Route -> Maybe CategoryManagement -> Maybe CategoryManagement
