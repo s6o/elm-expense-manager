@@ -6,6 +6,7 @@ module Meld
         , cmds
         , cmdseq
         , errorMessage
+        , errorModel
         , httpError
         , init
         , model
@@ -23,7 +24,7 @@ module Meld
 
 # Task mapping
 
-@docs model, withCmds, withMerge
+@docs model, errorModel, withCmds, withMerge
 
 
 # Task preparation
@@ -50,10 +51,10 @@ import Task exposing (Task)
 
 {-| Capture an application's model and tasks, process results with model merges and commands.
 -}
-type Meld m x msg
+type Meld m msg
     = Meld
         { model : m
-        , tasks : List (Meld m x msg -> Task x (Meld m x msg))
+        , tasks : List (Meld m msg -> Task (Error m) (Meld m msg))
         , merges : List (m -> m)
         , commands : List (m -> Cmd msg)
         }
@@ -61,33 +62,45 @@ type Meld m x msg
 
 {-| Common error handling type to ease composability.
 -}
-type Error
-    = EMsg String
-    | EHttp Http.Error
+type Error m
+    = EMsg m String
+    | EHttp m Http.Error
 
 
 
 -- Task mapping
 
 
-{-| Get application's model.
+{-| Unpack `Meld m msg`'s model.
 -}
-model : Meld m x msg -> m
+model : Meld m msg -> m
 model (Meld { model }) =
     model
 
 
-{-| Append a list of command functions to specified `Meld m x msg`.
+{-| Unpack `Error m`'s model.
 -}
-withCmds : List (m -> Cmd msg) -> Meld m x msg -> Meld m x msg
+errorModel : Error m -> m
+errorModel error =
+    case error of
+        EMsg m _ ->
+            m
+
+        EHttp m _ ->
+            m
+
+
+{-| Append a list of command functions to specified `Meld m msg`.
+-}
+withCmds : List (m -> Cmd msg) -> Meld m msg -> Meld m msg
 withCmds cmdFns (Meld r) =
     Meld
         { r | commands = r.commands ++ cmdFns }
 
 
-{-| Apply and append a merge function to specified `Meld m x msg`.
+{-| Apply and append a merge function to specified `Meld m msg`.
 -}
-withMerge : (m -> m) -> Meld m x msg -> Meld m x msg
+withMerge : (m -> m) -> Meld m msg -> Meld m msg
 withMerge mergeFn (Meld r) =
     Meld
         { r
@@ -100,9 +113,9 @@ withMerge mergeFn (Meld r) =
 -- Task preparation
 
 
-{-| Create an initial `Meld m x msg` from specified model.
+{-| Create an initial `Meld m msg` from specified model.
 -}
-init : m -> Meld m x msg
+init : m -> Meld m msg
 init m =
     Meld
         { model = m
@@ -115,22 +128,22 @@ init m =
 {-| @private
 Default initial/first `Task` for a sequnce of tasks.
 -}
-initTask : Meld m x msg -> Task x (Meld m x msg)
+initTask : Meld m msg -> Task (Error m) (Meld m msg)
 initTask meld =
     Task.succeed meld
 
 
-{-| Append a list of task functions to specified `Meld m x msg`.
+{-| Append a list of task functions to specified `Meld m msg`.
 -}
-addTasks : List (Meld m x msg -> Task x (Meld m x msg)) -> Meld m x msg -> Meld m x msg
+addTasks : List (Meld m msg -> Task (Error m) (Meld m msg)) -> Meld m msg -> Meld m msg
 addTasks taskFns (Meld r) =
     Meld
         { r | tasks = r.tasks ++ taskFns }
 
 
-{-| Create `Cmd`s from `Meld m x msg` tasks to be executed in any/unspecified order.
+{-| Create `Cmd`s from `Meld m msg` tasks to be executed in any/unspecified order.
 -}
-send : (Result x (Meld m x msg) -> msg) -> Meld m x msg -> ( m, Cmd msg )
+send : (Result (Error m) (Meld m msg) -> msg) -> Meld m msg -> ( m, Cmd msg )
 send toMsg (Meld r) =
     if List.isEmpty r.tasks then
         ( r.model
@@ -142,10 +155,10 @@ send toMsg (Meld r) =
         )
 
 
-{-| Execute `Meld m x msg` tasks in sequence, by continueing to a next task
+{-| Execute `Meld m msg` tasks in sequence, by continueing to a next task
 only upon successful completion of the previous task.
 -}
-sequence : (Result x (Meld m x msg) -> msg) -> Meld m x msg -> ( m, Cmd msg )
+sequence : (Result (Error m) (Meld m msg) -> msg) -> Meld m msg -> ( m, Cmd msg )
 sequence toMsg (Meld r) =
     if List.isEmpty r.tasks then
         ( r.model
@@ -161,9 +174,9 @@ sequence toMsg (Meld r) =
 -- CMD management
 
 
-{-| Execute a set of `Meld m x msg`'s tasks in any/unspecified order.
+{-| Execute a set of `Meld m msg`'s tasks in any/unspecified order.
 -}
-cmds : (Result x (Meld m x msg) -> msg) -> Meld m x msg -> Cmd msg
+cmds : (Result (Error m) (Meld m msg) -> msg) -> Meld m msg -> Cmd msg
 cmds toMsg meld =
     let
         (Meld { tasks }) =
@@ -174,10 +187,10 @@ cmds toMsg meld =
         |> Cmd.batch
 
 
-{-| Execute a set of `Meld m x msg`'s tasks in sequence, by proceeding to the next
+{-| Execute a set of `Meld m msg`'s tasks in sequence, by proceeding to the next
 only upon successful execution.
 -}
-cmdseq : (Result x (Meld m x msg) -> msg) -> Meld m x msg -> Cmd msg
+cmdseq : (Result (Error m) (Meld m msg) -> msg) -> Meld m msg -> Cmd msg
 cmdseq toMsg meld =
     let
         (Meld { tasks }) =
@@ -194,7 +207,7 @@ cmdseq toMsg meld =
 
 {-| Apply model merges to `m` and create command batch.
 -}
-update : m -> Meld m x msg -> ( m, Cmd msg )
+update : m -> Meld m msg -> ( m, Cmd msg )
 update appModel (Meld { merges, commands }) =
     let
         finalModel =
@@ -210,13 +223,13 @@ update appModel (Meld { merges, commands }) =
 
 {-| Retrive the error message.
 -}
-errorMessage : Error -> String
+errorMessage : Error m -> String
 errorMessage error =
     case error of
-        EMsg msg ->
+        EMsg _ msg ->
             msg
 
-        EHttp httpError ->
+        EHttp _ httpError ->
             case httpError of
                 Http.BadUrl msg ->
                     msg
@@ -236,10 +249,10 @@ errorMessage error =
 
 {-| Helper to access Http.Error is there is one.
 -}
-httpError : Error -> Maybe Http.Error
+httpError : Error m -> Maybe Http.Error
 httpError error =
     case error of
-        EHttp httpError ->
+        EHttp _ httpError ->
             Just httpError
 
         _ ->
